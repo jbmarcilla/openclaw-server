@@ -125,24 +125,27 @@ app.get('/', requireAuth, (req, res) => {
 
 // OpenClaw status check
 app.get('/api/openclaw-status', requireAuth, (req, res) => {
-  let responded = false;
-  const respond = (data) => {
-    if (!responded) {
-      responded = true;
-      res.json(data);
-    }
+  let done = false;
+  const finish = (data) => {
+    if (done) return;
+    done = true;
+    try { res.json(data); } catch (e) { /* already sent */ }
   };
 
-  const check = http.get(`http://127.0.0.1:${config.openclawPort}/`, (checkRes) => {
-    respond({ running: true, status: checkRes.statusCode });
-  });
-  check.on('error', () => {
-    respond({ running: false });
-  });
-  check.setTimeout(5000, () => {
-    check.destroy();
-    respond({ running: false });
-  });
+  try {
+    const check = http.get(`http://127.0.0.1:${config.openclawPort}/`, (checkRes) => {
+      checkRes.resume(); // consume response data
+      finish({ running: true, status: checkRes.statusCode });
+    });
+    check.on('error', () => finish({ running: false }));
+    check.on('timeout', () => {
+      check.destroy();
+      finish({ running: false });
+    });
+    check.setTimeout(5000);
+  } catch (e) {
+    finish({ running: false });
+  }
 });
 
 // OpenClaw reverse proxy
@@ -229,6 +232,14 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     shell.kill();
   });
+});
+
+// Prevent unhandled errors from crashing the server
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
 });
 
 // --- Start ---
