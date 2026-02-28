@@ -155,12 +155,14 @@ app.use('/openclaw', requireAuth, createProxyMiddleware({
   pathRewrite: { '^/openclaw': '' },
   on: {
     proxyRes: (proxyRes) => {
-      // Remove headers that block iframe embedding
+      // Remove headers that block iframe embedding and external resources
       delete proxyRes.headers['x-frame-options'];
       if (proxyRes.headers['content-security-policy']) {
-        proxyRes.headers['content-security-policy'] =
-          proxyRes.headers['content-security-policy']
-            .replace(/frame-ancestors [^;]+;?/, "frame-ancestors 'self';");
+        var csp = proxyRes.headers['content-security-policy'];
+        csp = csp.replace(/frame-ancestors [^;]+;?/, "frame-ancestors 'self';");
+        csp = csp.replace(/style-src ([^;]+);?/, "style-src $1 https://fonts.googleapis.com;");
+        csp = csp.replace(/font-src ([^;]+);?/, "font-src $1 https://fonts.gstatic.com;");
+        proxyRes.headers['content-security-policy'] = csp;
       }
     },
     error: (err, req, res) => {

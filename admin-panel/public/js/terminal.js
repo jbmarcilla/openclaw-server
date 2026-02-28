@@ -148,7 +148,9 @@
           statusDot.className = 'status-dot online';
           statusText.textContent = 'OpenClaw Activo';
           statusContainer.style.display = 'none';
-          iframe.src = '/openclaw/';
+          if (!iframe.src || !iframe.src.includes('/openclaw/')) {
+            iframe.src = '/openclaw/';
+          }
           iframe.style.display = 'block';
         } else {
           statusDot.className = 'status-dot offline';
