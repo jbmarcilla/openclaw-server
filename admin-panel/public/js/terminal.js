@@ -28,41 +28,74 @@
   term.open(termContainer);
   fitAddon.fit();
 
-  // --- WebSocket connection ---
-  var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  var ws = new WebSocket(protocol + '//' + location.host + '/ws/terminal');
+  // --- WebSocket connection with auto-reconnect ---
+  var ws = null;
+  var reconnectAttempts = 0;
+  var maxReconnectAttempts = 10;
+  var reconnectTimer = null;
 
-  ws.onopen = function () {
-    var dims = fitAddon.proposeDimensions();
-    if (dims) {
-      ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+  function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+      return;
     }
-  };
 
-  ws.onmessage = function (event) {
-    try {
-      var msg = JSON.parse(event.data);
-      if (msg.type === 'output') {
-        term.write(msg.data);
-      } else if (msg.type === 'exit') {
-        term.writeln('\r\n[Proceso terminado. Recarga la pagina para reconectar.]');
+    var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(protocol + '//' + location.host + '/ws/terminal');
+
+    ws.onopen = function () {
+      reconnectAttempts = 0;
+      var dims = fitAddon.proposeDimensions();
+      if (dims) {
+        ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
       }
-    } catch (e) {
-      term.write(event.data);
+    };
+
+    ws.onmessage = function (event) {
+      try {
+        var msg = JSON.parse(event.data);
+        if (msg.type === 'output') {
+          term.write(msg.data);
+        } else if (msg.type === 'exit') {
+          term.writeln('\r\n[Proceso terminado]');
+          scheduleReconnect();
+        }
+      } catch (e) {
+        term.write(event.data);
+      }
+    };
+
+    ws.onclose = function () {
+      scheduleReconnect();
+    };
+
+    ws.onerror = function () {
+      // onclose will fire after onerror, reconnect handled there
+    };
+  }
+
+  function scheduleReconnect() {
+    if (reconnectTimer) return;
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      term.writeln('\r\n[No se pudo reconectar. Recarga la pagina.]');
+      return;
     }
-  };
 
-  ws.onclose = function () {
-    term.writeln('\r\n[Conexion cerrada. Recarga la pagina para reconectar.]');
-  };
+    reconnectAttempts++;
+    var delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 15000);
+    term.writeln('\r\n[Reconectando en ' + Math.round(delay / 1000) + 's...]');
 
-  ws.onerror = function () {
-    term.writeln('\r\n[Error de WebSocket]');
-  };
+    reconnectTimer = setTimeout(function () {
+      reconnectTimer = null;
+      connectWebSocket();
+    }, delay);
+  }
+
+  // Start initial connection
+  connectWebSocket();
 
   // Terminal input -> WebSocket
   term.onData(function (data) {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'input', data: data }));
     }
   });
@@ -71,7 +104,7 @@
   function handleResize() {
     fitAddon.fit();
     var dims = fitAddon.proposeDimensions();
-    if (dims && ws.readyState === WebSocket.OPEN) {
+    if (dims && ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
     }
   }

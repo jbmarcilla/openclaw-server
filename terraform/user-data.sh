@@ -72,6 +72,11 @@ systemctl start openclaw-admin
 # [6/6] Configure Nginx
 echo "[6/6] Configuring Nginx..."
 cat > /etc/nginx/sites-available/openclaw-admin << 'NGINX'
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
 server {
     listen 80;
     server_name mayra-content.comuhack.com _;
@@ -80,7 +85,7 @@ server {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -148,15 +148,14 @@ app.get('/api/openclaw-status', requireAuth, (req, res) => {
   }
 });
 
-// OpenClaw reverse proxy
+// OpenClaw reverse proxy (ws: false to avoid conflicting with terminal WebSocket)
 app.use('/openclaw', requireAuth, createProxyMiddleware({
   target: `http://127.0.0.1:${config.openclawPort}`,
   changeOrigin: true,
   pathRewrite: { '^/openclaw': '' },
-  ws: true,
   on: {
     error: (err, req, res) => {
-      if (res.writeHead) {
+      if (res.writeHead && typeof res.status === 'function') {
         res.status(502).json({
           error: 'OpenClaw gateway no esta corriendo',
           hint: 'Usa el terminal para ejecutar: openclaw gateway install --port 18789'
@@ -171,20 +170,22 @@ app.use('/openclaw', requireAuth, createProxyMiddleware({
 const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (request, socket, head) => {
-  sessionMiddleware(request, {}, () => {
+  // Only handle terminal WebSocket upgrades
+  if (request.url !== '/ws/terminal') return;
+
+  // Mock response object for session middleware compatibility
+  const mockRes = Object.create(http.ServerResponse.prototype);
+
+  sessionMiddleware(request, mockRes, () => {
     if (!request.session || !request.session.authenticated) {
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
       socket.destroy();
       return;
     }
 
-    if (request.url === '/ws/terminal') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    } else {
-      socket.destroy();
-    }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
   });
 });
 
