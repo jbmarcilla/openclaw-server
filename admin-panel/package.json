@@ -1,0 +1,17 @@
+{
+  "name": "openclaw-admin-panel",
+  "version": "1.0.0",
+  "description": "Web admin panel for OpenClaw server management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "express-session": "^1.18.0",
+    "bcryptjs": "^2.4.3",
+    "ws": "^8.18.0",
+    "node-pty": "^1.0.0",
+    "http-proxy-middleware": "^3.0.0"
+  }
+}

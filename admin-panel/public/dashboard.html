@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+</head>
+<body class="dashboard-page">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <span class="logo">&#128030; OpenClaw Admin</span>
+    </div>
+    <div class="topbar-center">
+      <button class="tab-btn active" data-tab="terminal">Terminal</button>
+      <button class="tab-btn" data-tab="openclaw">OpenClaw Dashboard</button>
+    </div>
+    <div class="topbar-right">
+      <span id="status-indicator" class="status-dot offline"></span>
+      <span id="status-text">Verificando...</span>
+      <button id="logoutBtn" class="btn-logout">Salir</button>
+    </div>
+  </nav>
+
+  <main class="content">
+    <div id="tab-terminal" class="tab-content active">
+      <div id="terminal-container"></div>
+    </div>
+    <div id="tab-openclaw" class="tab-content">
+      <div id="openclaw-status" class="openclaw-not-running">
+        <div class="status-card">
+          <h2>OpenClaw Gateway</h2>
+          <p id="openclaw-message">Verificando estado...</p>
+          <div class="status-actions">
+            <button id="openclaw-refresh" class="btn-refresh">Actualizar Estado</button>
+          </div>
+          <div class="setup-instructions">
+            <h3>Para instalar OpenClaw:</h3>
+            <p>Abre el <strong>Terminal</strong> y ejecuta estos comandos:</p>
+            <code>sudo npm install -g openclaw@latest @anthropic-ai/claude-code</code>
+            <code>claude login</code>
+            <code>openclaw gateway install --port 18789</code>
+          </div>
+        </div>
+      </div>
+      <iframe id="openclaw-iframe" src="" style="display:none;"></iframe>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script src="/js/terminal.js"></script>
+</body>
+</html>

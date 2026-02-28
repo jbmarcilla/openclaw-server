@@ -1,72 +1,120 @@
-# OpenClaw Server - EC2 Deployment
+# OpenClaw Server - Admin Panel
 
-Infraestructura automatizada para desplegar [OpenClaw](https://openclaw.ai) en AWS EC2 con Terraform y GitHub Actions.
+Panel web de administracion para desplegar y gestionar [OpenClaw](https://openclaw.ai) en AWS EC2. Incluye login, terminal web integrado y dashboard de OpenClaw.
 
 ## Arquitectura
 
 ```
-           Internet
-              │
-    http://<ELASTIC_IP>
-              │
-    ┌─────────┴──────────┐
-    │   Nginx (port 80)  │  ← Basic Auth (admin/password)
-    │   Reverse Proxy     │
-    └─────────┬──────────┘
-              │ proxy_pass
-    ┌─────────┴──────────┐
-    │  OpenClaw Gateway   │  ← localhost:18789 (user service)
-    │  AI Agent Platform  │
-    └─────────┬──────────┘
-              │ API calls
-    ┌─────────┴──────────┐
-    │ Claude Max Proxy    │  ← localhost:3456 (system service)
-    │ LLM API Provider    │
-    └────────────────────┘
+         Internet
+            |
+  https://mayra-content.comuhack.com
+            |
+  +---------+----------+
+  |  Nginx (80/443)    |  <- SSL via Let's Encrypt
+  |  Reverse Proxy     |
+  +---------+----------+
+            | proxy_pass
+  +---------+----------+
+  |  Express.js Admin  |  <- systemd: openclaw-admin
+  |  Panel (:3000)     |
+  |                    |
+  |  /login    -> Login page
+  |  /         -> Dashboard (Terminal + OpenClaw tabs)
+  |  /ws/terminal -> WebSocket terminal (bash)
+  |  /openclaw/*  -> Proxy a OpenClaw Gateway
+  +---------+----------+
+            |
+  +---------+----------+
+  |  OpenClaw Gateway  |  <- localhost:18789
+  |  (instalado via    |     (se instala desde el terminal web)
+  |   terminal web)    |
+  +--------------------+
 
-    AWS EC2 (t2.small, 2GB RAM)
-    Ubuntu 22.04 LTS + Elastic IP
+  EC2 t2.small (Ubuntu 22.04, 2GB RAM)
 ```
 
 ## Estructura del Proyecto
 
 ```
 openclaw-server/
+├── admin-panel/                     # Panel web de administracion
+│   ├── package.json                 # Dependencias Node.js
+│   ├── config.js                    # Configuracion (credenciales, puertos)
+│   ├── server.js                    # Express + WebSocket + auth + proxy
+│   └── public/
+│       ├── login.html               # Pagina de login
+│       ├── dashboard.html           # Dashboard (terminal + OpenClaw)
+│       ├── css/style.css            # Estilos (dark theme)
+│       └── js/terminal.js           # Cliente xterm.js
 ├── terraform/
-│   ├── main.tf                   # EC2 + Elastic IP + Security Group + SSH Keys
-│   ├── variables.tf              # Variables: region, tipo instancia
-│   ├── outputs.tf                # IP, SSH command, URL del gateway
-│   └── user-data.sh              # Script de instalacion automatica (todo incluido)
+│   ├── main.tf                      # EC2 + Elastic IP + Security Group
+│   ├── variables.tf                 # Variables (region, instancia, dominio)
+│   ├── outputs.tf                   # IP, URL, instrucciones post-deploy
+│   └── user-data.sh                 # Script de instalacion automatica
 ├── .github/workflows/
-│   └── deploy.yml                # CI/CD: deploy automatico al push a main
-├── scripts/
-│   ├── quick-deploy.sh           # Deploy completo via SSH (sin Terraform)
-│   └── entrypoint.sh             # Entrypoint Docker (opcional)
-├── Dockerfile                    # Imagen Docker (opcional)
-├── .env.example                  # Variables de entorno requeridas
+│   └── deploy.yml                   # CI/CD: deploy al push a main
+├── .env.example                     # Variables de entorno requeridas
 └── readme.md
 ```
 
-## Requisitos Previos
+## Requisitos
 
-- **Cuenta AWS** con usuario IAM con permisos de administrador
-- **Terraform** >= 1.0 ([descargar](https://developer.hashicorp.com/terraform/downloads))
-- **Suscripcion Claude Max** (para Claude Max API Proxy)
+- **Node.js** >= 18 ([descargar](https://nodejs.org/))
+- **Cuenta AWS** con usuario IAM (permisos EC2, EIP, Security Groups) — solo para deploy en produccion
+- **Terraform** >= 1.0 ([descargar](https://developer.hashicorp.com/terraform/downloads)) — solo para deploy en produccion
+- **Dominio** con acceso a DNS (para HTTPS con Let's Encrypt) — opcional
 
-## Despliegue (2 opciones)
+## Desarrollo Local
 
-### Opcion 1: Terraform (recomendado)
+Puedes correr el admin panel localmente para desarrollo o pruebas:
 
-Crea toda la infraestructura desde cero con un solo comando.
+```bash
+# 1. Clonar el repo
+git clone https://github.com/jbmarcilla/openclaw-server.git
+cd openclaw-server
+
+# 2. Instalar dependencias
+cd admin-panel
+npm install
+
+# 3. Ejecutar
+npm start
+```
+
+Abre http://localhost:3000 en tu navegador.
+
+| Credencial | Valor |
+|------------|-------|
+| **Usuario** | `admin` |
+| **Password** | `OpenClaw2026!` |
+
+El terminal web abrira una sesion bash en tu maquina local. La pestana de OpenClaw mostrara "no esta corriendo" a menos que tengas OpenClaw Gateway en el puerto 18789.
+
+### Variables de entorno opcionales
+
+| Variable | Default | Descripcion |
+|----------|---------|-------------|
+| `ADMIN_PORT` | `3000` | Puerto del servidor |
+| `SESSION_SECRET` | auto-generado | Secreto para sesiones |
+| `OPENCLAW_PORT` | `18789` | Puerto del gateway OpenClaw |
+| `ADMIN_DOMAIN` | `mayra-content.comuhack.com` | Dominio para SSL |
+
+Ejemplo:
+
+```bash
+ADMIN_PORT=4000 npm start
+```
+
+## Despliegue en AWS (Produccion)
 
 ```bash
 # 1. Clonar
-git clone https://github.com/tu-usuario/openclaw-server.git
+git clone https://github.com/jbmarcilla/openclaw-server.git
 cd openclaw-server
 
-# 2. Configurar credenciales
+# 2. Configurar credenciales AWS
 cp .env.example .env
-# Editar .env con tus credenciales AWS:
+# Editar .env con tus credenciales:
 #   AWS_ACCESS_KEY_ID=tu-key
 #   AWS_SECRET_ACCESS_KEY=tu-secret
 #   AWS_REGION=us-west-2
@@ -76,14 +124,14 @@ export $(grep -v '^#' .env | xargs)
 cd terraform
 terraform init
 terraform apply -var="aws_region=$AWS_REGION"
-# Escribir "yes" cuando pida confirmacion
 
 # 4. Guardar clave SSH
 terraform output -raw private_key > ../openclaw-server-key.pem
 chmod 400 ../openclaw-server-key.pem
 
-# 5. Ver IP asignada
+# 5. Ver IP y pasos siguientes
 terraform output elastic_ip
+terraform output post_deploy
 ```
 
 Terraform crea automaticamente:
@@ -92,60 +140,16 @@ Terraform crea automaticamente:
 |---------|---------|
 | EC2 (t2.small) | Ubuntu 22.04, 2GB RAM, 20GB disco |
 | Elastic IP | IP publica fija |
-| Security Group | Puertos 22 (SSH), 80 (HTTP), 18789-18793 |
+| Security Group | Puertos 22 (SSH), 80 (HTTP), 443 (HTTPS) |
 | SSH Key Pair | RSA 4096-bit, auto-generado |
-| Software | Node.js 22, OpenClaw, Claude Max Proxy, Claude CLI, Nginx |
-| Servicios | claude-max-proxy (systemd), openclaw-gateway (user service) |
-| Nginx | Reverse proxy puerto 80 → 18789 con autenticacion |
+| Admin Panel | Express.js + xterm.js en puerto 3000 |
+| Nginx | Reverse proxy 80/443 -> 3000 |
 
-### Opcion 2: Quick Deploy (sin Terraform)
+## Post-Deploy
 
-Si ya tienes una instancia EC2 corriendo (creada manualmente):
+### 1. Acceder al Admin Panel
 
-```bash
-chmod +x scripts/quick-deploy.sh
-./scripts/quick-deploy.sh <EC2_IP> <SSH_KEY_PATH>
-```
-
-Ejemplo:
-
-```bash
-./scripts/quick-deploy.sh 44.252.138.103 ./openclaw-server-key.pem
-```
-
-Este script instala todo via SSH: Node.js, OpenClaw, Claude CLI, Nginx con auth.
-
-## Post-Deploy (una sola vez)
-
-Despues de que Terraform o quick-deploy terminen (~5 min), necesitas autenticar Claude:
-
-```bash
-# 1. Conectar al servidor
-ssh -i openclaw-server-key.pem ubuntu@<ELASTIC_IP>
-
-# 2. Autenticar Claude Code CLI
-claude login
-# Sigue las instrucciones (abre el link en tu navegador)
-
-# 3. Iniciar servicios
-sudo systemctl start claude-max-proxy
-export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
-systemctl --user start openclaw-gateway
-
-# 4. Verificar
-sudo systemctl status claude-max-proxy    # debe estar "active (running)"
-systemctl --user status openclaw-gateway  # debe estar "active (running)"
-
-# 5. Abrir en el navegador
-# http://<ELASTIC_IP>
-# Usuario: admin
-# Password: OpenClaw2026!
-```
-
-## Acceso al Dashboard
-
-Una vez desplegado, abre en tu navegador:
+Esperar 3-5 minutos despues de `terraform apply`, luego abrir:
 
 ```
 http://<ELASTIC_IP>
@@ -156,126 +160,78 @@ http://<ELASTIC_IP>
 | **Usuario** | `admin` |
 | **Password** | `OpenClaw2026!` |
 
-Para cambiar la password:
+### 2. Instalar OpenClaw (desde el terminal web)
+
+Una vez logueado, en la pestana **Terminal** ejecutar:
 
 ```bash
-ssh -i openclaw-server-key.pem ubuntu@<ELASTIC_IP>
-sudo htpasswd -b /etc/nginx/.htpasswd admin TuNuevaPassword
-sudo systemctl reload nginx
+sudo npm install -g openclaw@latest @anthropic-ai/claude-code
+claude login          # Seguir instrucciones (abrir link en navegador)
+openclaw gateway install --port 18789
 ```
 
-## Deploy Automatico con GitHub Actions
+### 3. Verificar OpenClaw
+
+Cambiar a la pestana **OpenClaw Dashboard** y hacer clic en **Actualizar Estado**. Deberia mostrar el dashboard de OpenClaw.
+
+### 4. Habilitar HTTPS (opcional)
+
+Agregar un registro DNS A apuntando al Elastic IP:
+
+```
+mayra-content.comuhack.com -> <ELASTIC_IP>
+```
+
+Luego, en el terminal web:
+
+```bash
+sudo certbot --nginx -d mayra-content.comuhack.com --non-interactive --agree-tos -m tu@email.com
+```
+
+Ahora acceder via `https://mayra-content.comuhack.com`.
+
+## CI/CD con GitHub Actions
 
 Cada push a `main` actualiza el servidor automaticamente.
 
 ### Configurar GitHub Secrets
 
-Ve a tu repo en GitHub: **Settings > Secrets and variables > Actions > New repository secret**
+En GitHub: **Settings > Secrets and variables > Actions > New repository secret**
 
 | Secret | Descripcion | Como obtenerlo |
 |--------|-------------|----------------|
 | `EC2_HOST` | IP del servidor | `terraform output elastic_ip` |
 | `EC2_SSH_KEY` | Clave privada SSH completa | `terraform output -raw private_key` |
 
-> Copia el contenido **completo** del `.pem`, incluyendo `-----BEGIN RSA PRIVATE KEY-----` y `-----END RSA PRIVATE KEY-----`.
-
-### Flujo CI/CD
-
-```
-git push origin main
-       │
-       ▼
-GitHub Actions (deploy.yml)
-       │
-       ▼
-SSH al servidor EC2
-       │
-       ▼
-npm install -g openclaw@latest ...
-       │
-       ▼
-Restart claude-max-proxy + openclaw-gateway
-       │
-       ▼
-Verificacion automatica (HTTP 200)
-```
-
 ## Comandos Utiles
 
-### Gestion de servicios
-
 ```bash
-# Estado
-sudo systemctl status claude-max-proxy
-systemctl --user status openclaw-gateway
+# Estado del admin panel
+sudo systemctl status openclaw-admin
+sudo journalctl -u openclaw-admin -f
 
-# Reiniciar
-sudo systemctl restart claude-max-proxy
-systemctl --user restart openclaw-gateway
+# Log de instalacion inicial
+cat /var/log/admin-panel-setup.log
 
-# Logs
-sudo journalctl -u claude-max-proxy -f
-journalctl --user -u openclaw-gateway -f
+# SSH al servidor
+ssh -i openclaw-server-key.pem ubuntu@<ELASTIC_IP>
 
-# IMPORTANTE: para comandos --user necesitas estas variables
-export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
-```
-
-### Terraform
-
-```bash
+# Terraform
 cd terraform
-
-terraform output              # Ver IP, SSH command, URL
+terraform output              # Ver outputs
 terraform output elastic_ip   # Solo la IP
-terraform output -raw private_key > key.pem  # Exportar clave SSH
-terraform show                # Estado completo
-terraform destroy             # Destruir toda la infraestructura
+terraform destroy             # Destruir todo
 ```
 
 ## Puertos
 
-| Puerto | Servicio | Acceso | Protegido |
-|--------|----------|--------|-----------|
-| 22 | SSH | Publico | Clave SSH |
-| 80 | Nginx (reverse proxy) | Publico | Basic Auth |
-| 3456 | Claude Max API Proxy | Solo localhost | - |
-| 18789 | OpenClaw Gateway | Solo localhost | Via Nginx |
-
-## Problemas Comunes
-
-### "Gateway service disabled"
-El gateway necesita instalarse como user service:
-```bash
-export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
-openclaw gateway install --port 18789
-```
-
-### "origin not allowed"
-La IP publica no esta en allowedOrigins. Editar `~/.openclaw/openclaw.json`:
-```json
-{
-  "gateway": {
-    "controlUi": {
-      "allowedOrigins": ["http://TU_IP"]
-    }
-  }
-}
-```
-Y reiniciar: `systemctl --user restart openclaw-gateway`
-
-### OOM / Out of Memory
-OpenClaw necesita minimo 2GB de RAM. Usar `t2.small` o superior.
-Verificar swap: `free -h` (debe tener 4GB de swap).
-
-### Claude Max Proxy falla
-Verificar que Claude Code CLI esta instalado y autenticado:
-```bash
-claude --version    # debe mostrar version
-claude login        # si no esta autenticado
-```
+| Puerto | Servicio | Acceso |
+|--------|----------|--------|
+| 22 | SSH | Publico (clave SSH) |
+| 80 | Nginx -> Admin Panel | Publico (redirige a 443 con HTTPS) |
+| 443 | Nginx -> Admin Panel | Publico (SSL) |
+| 3000 | Admin Panel (Express) | Solo localhost |
+| 18789 | OpenClaw Gateway | Solo localhost (via proxy /openclaw/) |
 
 ## Costos Estimados (AWS)
 

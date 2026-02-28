@@ -15,3 +15,9 @@ variable "key_name" {
   type        = string
   default     = "openclaw-server-key"
 }
+
+variable "admin_domain" {
+  description = "Domain for the admin panel (for SSL certificate)"
+  type        = string
+  default     = "mayra-content.comuhack.com"
+}

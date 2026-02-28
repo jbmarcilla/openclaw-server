@@ -61,15 +61,6 @@ resource "aws_security_group" "openclaw" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # OpenClaw Gateway
-  ingress {
-    description = "OpenClaw Gateway"
-    from_port   = 18789
-    to_port     = 18793
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   # HTTP
   ingress {
     description = "HTTP"
