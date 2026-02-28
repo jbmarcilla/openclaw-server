@@ -125,15 +125,23 @@ app.get('/', requireAuth, (req, res) => {
 
 // OpenClaw status check
 app.get('/api/openclaw-status', requireAuth, (req, res) => {
+  let responded = false;
+  const respond = (data) => {
+    if (!responded) {
+      responded = true;
+      res.json(data);
+    }
+  };
+
   const check = http.get(`http://127.0.0.1:${config.openclawPort}/`, (checkRes) => {
-    res.json({ running: true, status: checkRes.statusCode });
+    respond({ running: true, status: checkRes.statusCode });
   });
   check.on('error', () => {
-    res.json({ running: false });
+    respond({ running: false });
   });
-  check.setTimeout(2000, () => {
+  check.setTimeout(5000, () => {
     check.destroy();
-    res.json({ running: false });
+    respond({ running: false });
   });
 });
 

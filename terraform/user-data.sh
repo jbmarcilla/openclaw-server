@@ -99,6 +99,18 @@ systemctl enable nginx
 # Enable user lingering for ubuntu (needed for openclaw user services)
 loginctl enable-linger ubuntu
 
+# Pre-configure OpenClaw gateway.mode=local (required to start)
+sudo -u ubuntu mkdir -p /home/ubuntu/.openclaw
+sudo -u ubuntu tee /home/ubuntu/.openclaw/openclaw.json > /dev/null << 'OCCONFIG'
+{
+  "gateway": {
+    "mode": "local",
+    "port": 18789,
+    "bind": "loopback"
+  }
+}
+OCCONFIG
+
 echo ""
 echo "=== Setup Complete - $(date) ==="
 echo "Node: $(node --version)"
