@@ -1,0 +1,51 @@
+name: Deploy OpenClaw Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            echo "=== Deploying OpenClaw Server ==="
+
+            # Update packages
+            sudo OPENCLAW_NO_PROMPT=1 npm install -g openclaw@latest claude-max-api-proxy @anthropic-ai/claude-code
+            echo "[+] Packages updated"
+
+            # Restart claude-max-proxy (system service)
+            sudo systemctl restart claude-max-proxy
+            sleep 3
+            sudo systemctl status claude-max-proxy --no-pager || true
+            echo "[+] claude-max-proxy restarted"
+
+            # Restart openclaw-gateway (user service)
+            export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
+            export XDG_RUNTIME_DIR=/run/user/$(id -u)
+            systemctl --user restart openclaw-gateway
+            sleep 10
+            systemctl --user status openclaw-gateway --no-pager || true
+            echo "[+] openclaw-gateway restarted"
+
+            # Verify
+            echo "=== Verification ==="
+            curl -s -o /dev/null -w "Gateway: HTTP %{http_code}\n" http://localhost:18789/
+            curl -s -o /dev/null -w "Nginx:   HTTP %{http_code}\n" http://localhost/
+
+            echo "=== Deploy Complete ==="
