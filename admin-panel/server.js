@@ -82,11 +82,7 @@ app.post('/api/setup', (req, res) => {
   };
   saveConfig(config);
 
-  // Auto-login after setup
-  req.session.authenticated = true;
-  req.session.username = username;
-
-  res.json({ success: true });
+  res.json({ success: true, redirect: '/login' });
 });
 
 // --- Login routes ---

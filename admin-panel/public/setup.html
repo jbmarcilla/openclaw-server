@@ -3,16 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenClaw Admin - Crear Cuenta</title>
+  <title>OpenClaw Admin - Configuracion Inicial</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-page">
   <div class="login-container">
+    <!-- Steps indicator -->
+    <div class="steps">
+      <div class="step active" id="step-ind-1"><span class="step-num">1</span> Crear cuenta</div>
+      <div class="step-arrow">&#8250;</div>
+      <div class="step" id="step-ind-2"><span class="step-num">2</span> Iniciar sesion</div>
+      <div class="step-arrow">&#8250;</div>
+      <div class="step" id="step-ind-3"><span class="step-num">3</span> Terminal</div>
+    </div>
+
     <div class="login-header">
       <div class="login-icon">&#128030;</div>
-      <h1>OpenClaw Admin</h1>
-      <p>Crea tu cuenta de administrador</p>
+      <h1>Paso 1: Crear Cuenta</h1>
+      <p>Configura tu usuario y password de administrador</p>
     </div>
+
     <form id="setupForm">
       <div class="form-group">
         <label for="username">Usuario</label>
@@ -32,6 +42,14 @@
       <div id="error-message" class="error-message"></div>
       <button type="submit" class="btn-login btn-setup">Crear Cuenta</button>
     </form>
+
+    <!-- Success message (hidden initially) -->
+    <div id="success-message" class="success-message" style="display:none;">
+      <div class="success-icon">&#10003;</div>
+      <h2>Cuenta creada</h2>
+      <p>Ahora inicia sesion con tus credenciales</p>
+      <a href="/login" class="btn-login" style="display:inline-block;text-align:center;text-decoration:none;margin-top:16px;">Ir al Login</a>
+    </div>
   </div>
   <script>
     document.getElementById('setupForm').addEventListener('submit', async (e) => {
@@ -63,15 +81,24 @@
         });
         const data = await res.json();
         if (data.success) {
-          window.location.href = '/';
+          // Hide form, show success
+          document.getElementById('setupForm').style.display = 'none';
+          document.querySelector('.login-header').style.display = 'none';
+          document.getElementById('success-message').style.display = 'block';
+          // Update step indicators
+          document.getElementById('step-ind-1').classList.remove('active');
+          document.getElementById('step-ind-1').classList.add('done');
+          document.getElementById('step-ind-2').classList.add('active');
         } else {
           errorEl.textContent = data.message || 'Error al crear cuenta';
+          btn.disabled = false;
+          btn.textContent = 'Crear Cuenta';
         }
       } catch (err) {
         errorEl.textContent = 'Error de conexion';
+        btn.disabled = false;
+        btn.textContent = 'Crear Cuenta';
       }
-      btn.disabled = false;
-      btn.textContent = 'Crear Cuenta';
     });
   </script>
 </body>
