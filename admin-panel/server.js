@@ -148,12 +148,21 @@ app.get('/api/openclaw-status', requireAuth, (req, res) => {
   }
 });
 
-// OpenClaw reverse proxy (ws: false to avoid conflicting with terminal WebSocket)
+// OpenClaw reverse proxy
 app.use('/openclaw', requireAuth, createProxyMiddleware({
   target: `http://127.0.0.1:${config.openclawPort}`,
   changeOrigin: true,
   pathRewrite: { '^/openclaw': '' },
   on: {
+    proxyRes: (proxyRes) => {
+      // Remove headers that block iframe embedding
+      delete proxyRes.headers['x-frame-options'];
+      if (proxyRes.headers['content-security-policy']) {
+        proxyRes.headers['content-security-policy'] =
+          proxyRes.headers['content-security-policy']
+            .replace(/frame-ancestors [^;]+;?/, "frame-ancestors 'self';");
+      }
+    },
     error: (err, req, res) => {
       if (res.writeHead && typeof res.status === 'function') {
         res.status(502).json({
