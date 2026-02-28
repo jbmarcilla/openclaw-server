@@ -6,9 +6,9 @@ const pty = require('node-pty');
 const bcrypt = require('bcryptjs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
-const { loadConfig } = require('./config');
+const { loadConfig, saveConfig, isSetupDone } = require('./config');
 
-const config = loadConfig();
+let config = loadConfig();
 const app = express();
 const server = http.createServer(app);
 
@@ -31,22 +31,80 @@ app.use(sessionMiddleware);
 // Trust Nginx proxy
 app.set('trust proxy', 1);
 
+// Setup check middleware - redirect to /setup if first time
+function requireSetup(req, res, next) {
+  if (!isSetupDone() && req.path !== '/setup' && !req.path.startsWith('/api/setup') && !req.path.startsWith('/css') && !req.path.startsWith('/js')) {
+    return res.redirect('/setup');
+  }
+  next();
+}
+
 // Auth middleware
 function requireAuth(req, res, next) {
+  if (!isSetupDone()) return res.redirect('/setup');
   if (req.session && req.session.authenticated) return next();
   res.redirect('/login');
 }
 
-// --- Public routes ---
+app.use(requireSetup);
+
+// --- Static assets (accessible without auth for login/setup pages) ---
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
+
+// --- Setup routes (first time only) ---
+
+app.get('/setup', (req, res) => {
+  if (isSetupDone()) return res.redirect('/login');
+  res.sendFile(path.join(__dirname, 'public', 'setup.html'));
+});
+
+app.post('/api/setup', (req, res) => {
+  if (isSetupDone()) {
+    return res.status(403).json({ success: false, message: 'La cuenta ya fue creada' });
+  }
+
+  const { username, password, confirmPassword } = req.body;
+
+  if (!username || username.length < 3) {
+    return res.status(400).json({ success: false, message: 'El usuario debe tener al menos 3 caracteres' });
+  }
+  if (!password || password.length < 6) {
+    return res.status(400).json({ success: false, message: 'La password debe tener al menos 6 caracteres' });
+  }
+  if (password !== confirmPassword) {
+    return res.status(400).json({ success: false, message: 'Las passwords no coinciden' });
+  }
+
+  config.credentials = {
+    username: username,
+    passwordHash: bcrypt.hashSync(password, 10)
+  };
+  saveConfig(config);
+
+  // Auto-login after setup
+  req.session.authenticated = true;
+  req.session.username = username;
+
+  res.json({ success: true });
+});
+
+// --- Login routes ---
 
 app.get('/login', (req, res) => {
+  if (!isSetupDone()) return res.redirect('/setup');
   if (req.session && req.session.authenticated) return res.redirect('/');
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.post('/api/login', (req, res) => {
+  if (!isSetupDone()) {
+    return res.status(403).json({ success: false, message: 'Primero crea tu cuenta en /setup' });
+  }
+
   const { username, password } = req.body;
   if (
+    config.credentials &&
     username === config.credentials.username &&
     bcrypt.compareSync(password, config.credentials.passwordHash)
   ) {
@@ -57,10 +115,6 @@ app.post('/api/login', (req, res) => {
     res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
   }
 });
-
-// Static assets (CSS/JS accessible without auth for login page)
-app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
-app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
 
 // --- Protected routes ---
 
@@ -110,7 +164,6 @@ app.use('/openclaw', requireAuth, createProxyMiddleware({
 const wss = new WebSocketServer({ noServer: true });
 
 server.on('upgrade', (request, socket, head) => {
-  // Parse session for WebSocket auth
   sessionMiddleware(request, {}, () => {
     if (!request.session || !request.session.authenticated) {
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -140,7 +193,6 @@ wss.on('connection', (ws) => {
     }
   });
 
-  // PTY output -> WebSocket
   shell.onData((data) => {
     try {
       ws.send(JSON.stringify({ type: 'output', data }));
@@ -154,7 +206,6 @@ wss.on('connection', (ws) => {
     } catch (e) { /* already closed */ }
   });
 
-  // WebSocket input -> PTY
   ws.on('message', (msg) => {
     try {
       const message = JSON.parse(msg);
@@ -180,4 +231,7 @@ wss.on('connection', (ws) => {
 
 server.listen(config.port, '127.0.0.1', () => {
   console.log(`OpenClaw Admin Panel running on http://127.0.0.1:${config.port}`);
+  if (!isSetupDone()) {
+    console.log('First time setup: visit /setup to create your account');
+  }
 });

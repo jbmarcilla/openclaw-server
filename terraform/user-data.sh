@@ -40,33 +40,8 @@ fi
 cd "$APP_DIR/admin-panel"
 npm install --production
 
-# [5/7] Create config with default credentials
-echo "[5/7] Creating config..."
-sudo -u ubuntu mkdir -p /home/ubuntu/.openclaw-admin
-
-RANDOM_SECRET=$(openssl rand -hex 32)
-BCRYPT_HASH=$(cd "$APP_DIR/admin-panel" && node -e "
-  var bcrypt = require('bcryptjs');
-  console.log(bcrypt.hashSync('OpenClaw2026!', 10));
-")
-
-cat > /home/ubuntu/.openclaw-admin/config.json << EOF
-{
-  "port": 3000,
-  "sessionSecret": "${RANDOM_SECRET}",
-  "credentials": {
-    "username": "admin",
-    "passwordHash": "${BCRYPT_HASH}"
-  },
-  "openclawPort": 18789,
-  "domain": "mayra-content.comuhack.com"
-}
-EOF
-chown ubuntu:ubuntu /home/ubuntu/.openclaw-admin/config.json
-chmod 600 /home/ubuntu/.openclaw-admin/config.json
-
-# [6/7] Create systemd service
-echo "[6/7] Creating systemd service..."
+# [5/6] Create systemd service (no config = setup wizard on first visit)
+echo "[5/6] Creating systemd service..."
 cat > /etc/systemd/system/openclaw-admin.service << 'SYSTEMD'
 [Unit]
 Description=OpenClaw Admin Panel
@@ -94,8 +69,8 @@ systemctl daemon-reload
 systemctl enable openclaw-admin
 systemctl start openclaw-admin
 
-# [7/7] Configure Nginx
-echo "[7/7] Configuring Nginx..."
+# [6/6] Configure Nginx
+echo "[6/6] Configuring Nginx..."
 cat > /etc/nginx/sites-available/openclaw-admin << 'NGINX'
 server {
     listen 80;
@@ -129,7 +104,7 @@ echo "=== Setup Complete - $(date) ==="
 echo "Node: $(node --version)"
 echo ""
 echo "Admin panel: http://<ELASTIC_IP>"
-echo "Login: admin / OpenClaw2026!"
+echo "Abre en el navegador para crear tu cuenta de administrador"
 echo ""
 echo "Para HTTPS (despues de configurar DNS):"
 echo "  sudo certbot --nginx -d mayra-content.comuhack.com --non-interactive --agree-tos -m tu@email.com"

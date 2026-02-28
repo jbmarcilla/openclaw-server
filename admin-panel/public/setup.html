@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Admin - Crear Cuenta</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="login-icon">&#128030;</div>
+      <h1>OpenClaw Admin</h1>
+      <p>Crea tu cuenta de administrador</p>
+    </div>
+    <form id="setupForm">
+      <div class="form-group">
+        <label for="username">Usuario</label>
+        <input type="text" id="username" name="username" required autofocus autocomplete="username"
+               minlength="3" placeholder="Minimo 3 caracteres">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="new-password"
+               minlength="6" placeholder="Minimo 6 caracteres">
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirmar Password</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password"
+               minlength="6" placeholder="Repite la password">
+      </div>
+      <div id="error-message" class="error-message"></div>
+      <button type="submit" class="btn-login btn-setup">Crear Cuenta</button>
+    </form>
+  </div>
+  <script>
+    document.getElementById('setupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById('error-message');
+      const btn = e.target.querySelector('button');
+      errorEl.textContent = '';
+
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (password !== confirmPassword) {
+        errorEl.textContent = 'Las passwords no coinciden';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creando...';
+
+      try {
+        const res = await fetch('/api/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: password,
+            confirmPassword: confirmPassword
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.href = '/';
+        } else {
+          errorEl.textContent = data.message || 'Error al crear cuenta';
+        }
+      } catch (err) {
+        errorEl.textContent = 'Error de conexion';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Crear Cuenta';
+    });
+  </script>
+</body>
+</html>

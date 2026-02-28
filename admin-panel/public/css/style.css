@@ -109,6 +109,14 @@ body {
   cursor: not-allowed;
 }
 
+.btn-setup {
+  background: #a6e3a1;
+}
+
+.btn-setup:hover {
+  background: #94e2d5;
+}
+
 /* === Dashboard === */
 .dashboard-page {
   display: flex;
