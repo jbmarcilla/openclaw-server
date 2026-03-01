@@ -14,6 +14,7 @@
     </div>
     <div class="topbar-center">
       <button class="tab-btn active" data-tab="terminal">Terminal</button>
+      <button class="tab-btn" data-tab="guide">Guia</button>
       <button class="tab-btn" data-tab="openclaw">OpenClaw Dashboard</button>
     </div>
     <div class="topbar-right">
@@ -26,6 +27,109 @@
   <main class="content">
     <div id="tab-terminal" class="tab-content active">
       <div id="terminal-container"></div>
+    </div>
+    <div id="tab-guide" class="tab-content">
+      <div class="guide-container">
+        <div class="guide-header">
+          <h1>Guia de Instalacion</h1>
+          <p>Sigue estos pasos desde el <strong>Terminal</strong> para configurar OpenClaw</p>
+          <div class="guide-progress">
+            <span id="guide-progress-text">0 de 6 completados</span>
+            <div class="progress-bar"><div id="guide-progress-bar" class="progress-fill"></div></div>
+          </div>
+        </div>
+
+        <div class="guide-steps">
+          <div class="guide-step" data-step="1">
+            <div class="step-header">
+              <div class="step-num-guide">1</div>
+              <div class="step-info">
+                <h3>Instalar OpenClaw</h3>
+                <p>Instala el CLI de OpenClaw globalmente en el servidor</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(1)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-command">
+              <code>sudo npm install -g openclaw@latest</code>
+              <button class="btn-copy" onclick="copyCommand(this)" data-cmd="sudo npm install -g openclaw@latest">Copiar</button>
+            </div>
+          </div>
+
+          <div class="guide-step" data-step="2">
+            <div class="step-header">
+              <div class="step-num-guide">2</div>
+              <div class="step-info">
+                <h3>Instalar Claude Code</h3>
+                <p>Necesario como provider de IA para OpenClaw</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(2)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-command">
+              <code>sudo npm install -g @anthropic-ai/claude-code</code>
+              <button class="btn-copy" onclick="copyCommand(this)" data-cmd="sudo npm install -g @anthropic-ai/claude-code">Copiar</button>
+            </div>
+          </div>
+
+          <div class="guide-step" data-step="3">
+            <div class="step-header">
+              <div class="step-num-guide">3</div>
+              <div class="step-info">
+                <h3>Login en Claude</h3>
+                <p>Autenticarse con Anthropic. Va a mostrar un link en la terminal, copialo y pegalo en tu navegador</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(3)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-command">
+              <code>claude login</code>
+              <button class="btn-copy" onclick="copyCommand(this)" data-cmd="claude login">Copiar</button>
+            </div>
+            <div class="step-tip">Tip: El link que aparece en la terminal lo debes abrir en tu navegador para completar la autenticacion</div>
+          </div>
+
+          <div class="guide-step" data-step="4">
+            <div class="step-header">
+              <div class="step-num-guide">4</div>
+              <div class="step-info">
+                <h3>Configurar OpenClaw</h3>
+                <p>Wizard interactivo que configura autenticacion, gateway y canales (WhatsApp, Telegram, etc.)</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(4)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-command">
+              <code>openclaw onboard --install-daemon</code>
+              <button class="btn-copy" onclick="copyCommand(this)" data-cmd="openclaw onboard --install-daemon">Copiar</button>
+            </div>
+            <div class="step-tip">Este wizard te guia paso a paso. Puedes conectar canales como WhatsApp, Telegram, Discord, Slack y mas</div>
+          </div>
+
+          <div class="guide-step" data-step="5">
+            <div class="step-header">
+              <div class="step-num-guide">5</div>
+              <div class="step-info">
+                <h3>Verificar Gateway</h3>
+                <p>Confirma que el gateway esta corriendo correctamente</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(5)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-command">
+              <code>openclaw gateway status</code>
+              <button class="btn-copy" onclick="copyCommand(this)" data-cmd="openclaw gateway status">Copiar</button>
+            </div>
+          </div>
+
+          <div class="guide-step" data-step="6">
+            <div class="step-header">
+              <div class="step-num-guide">6</div>
+              <div class="step-info">
+                <h3>Abrir Dashboard</h3>
+                <p>Ve al tab "OpenClaw Dashboard" para ver el panel completo de administracion</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(6)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-tip">Haz click en el tab "OpenClaw Dashboard" arriba. Si el indicador esta verde, todo esta listo</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="tab-openclaw" class="tab-content">
       <div id="openclaw-status" class="openclaw-not-running">

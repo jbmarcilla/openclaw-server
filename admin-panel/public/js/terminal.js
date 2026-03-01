@@ -173,6 +173,65 @@
   checkOpenClawStatus();
   setInterval(checkOpenClawStatus, 30000);
 
+  // --- Guide: Copy to clipboard ---
+  window.copyCommand = function (btn) {
+    var cmd = btn.getAttribute('data-cmd');
+    navigator.clipboard.writeText(cmd).then(function () {
+      btn.textContent = 'Copiado!';
+      btn.classList.add('copied');
+      setTimeout(function () {
+        btn.textContent = 'Copiar';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  };
+
+  // --- Guide: Progress tracking ---
+  var GUIDE_KEY = 'guideProgress';
+
+  function getCompleted() {
+    try {
+      return JSON.parse(localStorage.getItem(GUIDE_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function updateGuideUI() {
+    var completed = getCompleted();
+    var steps = document.querySelectorAll('.guide-step');
+    steps.forEach(function (el) {
+      var n = parseInt(el.getAttribute('data-step'));
+      if (completed.indexOf(n) !== -1) {
+        el.classList.add('done');
+      } else {
+        el.classList.remove('done');
+      }
+    });
+
+    var total = steps.length;
+    var doneCount = completed.length;
+    var progressText = document.getElementById('guide-progress-text');
+    var progressBar = document.getElementById('guide-progress-bar');
+    if (progressText) progressText.textContent = doneCount + ' de ' + total + ' completados';
+    if (progressBar) progressBar.style.width = (total > 0 ? (doneCount / total) * 100 : 0) + '%';
+  }
+
+  window.toggleStep = function (n) {
+    var completed = getCompleted();
+    var idx = completed.indexOf(n);
+    if (idx === -1) {
+      completed.push(n);
+    } else {
+      completed.splice(idx, 1);
+    }
+    localStorage.setItem(GUIDE_KEY, JSON.stringify(completed));
+    updateGuideUI();
+  };
+
+  // Initialize guide on load
+  updateGuideUI();
+
   // --- Logout ---
   document.getElementById('logoutBtn').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST' }).then(function () {
