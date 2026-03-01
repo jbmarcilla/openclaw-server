@@ -191,15 +191,18 @@ app.use('/openclaw', requireAuth, createProxyMiddleware({
   }
 }));
 
-// --- WebSocket terminal ---
+// --- WebSocket handling ---
 
 const wss = new WebSocketServer({ noServer: true });
+const { createProxyMiddleware: _cpm } = require('http-proxy-middleware');
+const openclawWsProxy = _cpm({
+  target: `http://127.0.0.1:${config.openclawPort}`,
+  changeOrigin: true,
+  pathRewrite: { '^/openclaw': '' },
+  ws: true,
+});
 
 server.on('upgrade', (request, socket, head) => {
-  // Only handle terminal WebSocket upgrades
-  if (request.url !== '/ws/terminal') return;
-
-  // Mock response object for session middleware compatibility
   const mockRes = Object.create(http.ServerResponse.prototype);
 
   sessionMiddleware(request, mockRes, () => {
@@ -209,9 +212,17 @@ server.on('upgrade', (request, socket, head) => {
       return;
     }
 
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit('connection', ws, request);
-    });
+    if (request.url === '/ws/terminal') {
+      // Terminal WebSocket
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else if (request.url.startsWith('/openclaw')) {
+      // OpenClaw WebSocket - proxy to gateway
+      openclawWsProxy.upgrade(request, socket, head);
+    } else {
+      socket.destroy();
+    }
   });
 });
 
