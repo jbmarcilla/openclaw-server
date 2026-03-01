@@ -62,12 +62,22 @@
             <div class="step-header">
               <div class="step-num-guide">1</div>
               <div class="step-info">
-                <h3>Comprar un Dominio</h3>
-                <p>Necesitas un dominio propio (ej: <code style="display:inline;background:#181825;padding:2px 6px;border-radius:4px;">tuempresa.com</code>). Lo puedes comprar en cualquier registrador.</p>
+                <h3>Tener un Dominio</h3>
+                <p>Necesitas un dominio propio o un subdominio de uno que ya tengas.</p>
               </div>
               <button class="btn-check" onclick="toggleStep(1)" title="Marcar como completado"></button>
             </div>
-            <div class="step-tip">Registradores populares: Namecheap, GoDaddy, Porkbun. Precio: ~$10/ano</div>
+            <div class="step-substeps">
+              <div class="substep">
+                <span class="substep-num">A</span>
+                <span><strong>Dominio nuevo:</strong> Compra uno en cualquier registrador (ej: <code style="display:inline;background:#181825;padding:2px 6px;border-radius:4px;">tuempresa.com</code>)</span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">B</span>
+                <span><strong>Subdominio:</strong> Si ya tienes un dominio, puedes usar un subdominio (ej: <code style="display:inline;background:#181825;padding:2px 6px;border-radius:4px;">admin.tuempresa.com</code>)</span>
+              </div>
+            </div>
+            <div class="step-tip">Registradores populares: Namecheap, GoDaddy, Porkbun. Precio dominio nuevo: ~$10/ano. Un subdominio es gratis si ya tienes el dominio.</div>
           </div>
 
           <div class="guide-step" data-step="2">
@@ -108,7 +118,7 @@
                 <span>Cloudflare te da 2 nameservers. Ve a tu registrador y <strong>cambia los nameservers</strong> a los que Cloudflare te indica</span>
               </div>
             </div>
-            <div class="step-tip">Los nameservers se cambian en donde compraste tu dominio. Puede tardar hasta 24 horas, pero usualmente toma minutos.</div>
+            <div class="step-tip">Los nameservers se cambian en donde compraste tu dominio. Puede tardar hasta 24 horas, pero usualmente toma minutos. Si tu dominio ya esta en Cloudflare, salta este paso.</div>
           </div>
 
           <div class="guide-step" data-step="4">
@@ -134,14 +144,22 @@
               </div>
               <div class="substep">
                 <span class="substep-num">4b</span>
-                <span>Type: <strong>A</strong> | Name: <strong>@</strong> (o tu subdominio) | Content: <strong>la IP de arriba</strong></span>
+                <span>Type: <strong>A</strong></span>
               </div>
               <div class="substep">
                 <span class="substep-num">4c</span>
-                <span>Proxy status: <strong>Proxied</strong> (nube naranja activada)</span>
+                <span>Name: <strong>@</strong> si usas el dominio completo (ej: tuempresa.com), o el nombre del subdominio (ej: <strong>admin</strong> para admin.tuempresa.com)</span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">4d</span>
+                <span>Content: <strong>la IP de arriba</strong> (copiala con el boton)</span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">4e</span>
+                <span>Proxy status: <strong>Proxied</strong> (nube naranja activada) — esto activa el SSL gratis</span>
               </div>
             </div>
-            <div class="step-tip">Copia la IP de arriba y pegala en el campo "Content" del registro A en Cloudflare.</div>
+            <div class="step-tip">Ejemplo: si tu dominio es tuempresa.com y quieres usar admin.tuempresa.com, pon "admin" en Name. Si quieres usar tuempresa.com directo, pon "@".</div>
           </div>
 
           <div class="guide-step" data-step="5">
