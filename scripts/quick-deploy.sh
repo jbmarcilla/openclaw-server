@@ -123,25 +123,28 @@ export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/\$(id -u)/bus
 export XDG_RUNTIME_DIR=/run/user/\$(id -u)
 openclaw gateway install --port 18789 2>&1 || echo "[!] Gateway install may need claude login first"
 
-echo "[8/8] Configuring nginx (port 80 → 18789 with auth)..."
-sudo htpasswd -cb /etc/nginx/.htpasswd admin 'OpenClaw2026!'
-
+echo "[8/8] Configuring nginx (port 80 → admin panel)..."
 sudo tee /etc/nginx/sites-available/openclaw > /dev/null << 'NGINX'
+map \\\$http_upgrade \\\$connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
 server {
     listen 80;
     server_name _;
 
-    auth_basic "OpenClaw Server";
-    auth_basic_user_file /etc/nginx/.htpasswd;
-
     location / {
-        proxy_pass http://127.0.0.1:18789;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \\\$http_upgrade;
-        proxy_set_header Connection "upgrade";
+        proxy_set_header Connection \\\$connection_upgrade;
         proxy_set_header Host \\\$host;
         proxy_set_header X-Real-IP \\\$remote_addr;
+        proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \\\$scheme;
         proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
     }
 }
 NGINX
@@ -156,17 +159,16 @@ echo "============================================"
 echo "  Installation Complete!"
 echo "============================================"
 echo ""
-echo "  NEXT STEPS (first time only):"
-echo "    1. claude login"
-echo "    2. sudo systemctl start claude-max-proxy"
-echo "    3. systemctl --user start openclaw-gateway"
+echo "  Open: http://${EC2_IP}"
+echo "  Create your account on first visit (setup wizard)"
 echo ""
-echo "  Then open: http://${EC2_IP}"
-echo "  User: admin | Password: OpenClaw2026!"
+echo "  NEXT STEPS (from the web terminal):"
+echo "    1. claude login"
+echo "    2. Follow the guide in the admin panel"
 echo "============================================"
 REMOTE
 
 echo ""
 echo "=== Deploy Complete! ==="
 echo "SSH: ssh -i $SSH_KEY ubuntu@$EC2_IP"
-echo "URL: http://$EC2_IP (admin / OpenClaw2026!)"
+echo "URL: http://$EC2_IP (create account on first visit)"

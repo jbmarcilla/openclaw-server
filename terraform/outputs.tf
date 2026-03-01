@@ -20,13 +20,8 @@ output "ssh_command" {
 }
 
 output "admin_panel_url" {
-  description = "Admin panel URL (HTTP)"
+  description = "Admin panel URL"
   value       = "http://${aws_eip.openclaw.public_ip}"
-}
-
-output "admin_panel_https" {
-  description = "Admin panel HTTPS URL (after DNS + certbot)"
-  value       = "https://${var.admin_domain}"
 }
 
 output "post_deploy" {
@@ -34,11 +29,9 @@ output "post_deploy" {
   value       = <<-EOT
 
     === POST-DEPLOY ===
-    1. Esperar 3-5 min para que user-data termine
+    1. Esperar 3-5 min para que la instalacion termine
     2. Abrir: http://${aws_eip.openclaw.public_ip}
-    3. Login: admin / OpenClaw2026!
-    4. DNS: Agregar A record ${var.admin_domain} -> ${aws_eip.openclaw.public_ip}
-    5. En el terminal web: sudo certbot --nginx -d ${var.admin_domain} --non-interactive --agree-tos -m tu@email.com
-    6. Acceder: https://${var.admin_domain}
+    3. Crear tu cuenta en el wizard de setup
+    4. Seguir la guia en el tab "Guia" del panel
   EOT
 }

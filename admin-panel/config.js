@@ -21,7 +21,7 @@ function loadConfig() {
     sessionSecret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
     credentials: null,
     openclawPort: parseInt(process.env.OPENCLAW_PORT || '18789', 10),
-    domain: process.env.ADMIN_DOMAIN || 'mayra-content.comuhack.com'
+    domain: process.env.ADMIN_DOMAIN || ''
   };
 
   if (fs.existsSync(CONFIG_FILE)) {

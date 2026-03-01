@@ -7,15 +7,22 @@
 *.tfvars
 !terraform.tfvars.example
 
-# SSH keys
+# SSH / Credentials
 *.pem
 *.key
+*.pub
 id_rsa*
+id_ed25519*
+**/.ssh/
+known_hosts
+authorized_keys
 
-# Environment
+# Environment / Secrets
 .env
 .env.*
 !.env.example
+*.secret
+credentials.json
 
 # OS
 .DS_Store
@@ -23,7 +30,6 @@ Thumbs.db
 
 # IDE
 .vscode/
-.env
 .idea/
 
 # Node.js
@@ -34,3 +40,6 @@ docker-compose.override.yml
 
 # Logs
 *.log
+
+# Admin panel config (contains hashed passwords)
+admin-panel/config.json
