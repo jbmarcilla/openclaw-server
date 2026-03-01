@@ -198,7 +198,6 @@ const { createProxyMiddleware: _cpm } = require('http-proxy-middleware');
 const openclawWsProxy = _cpm({
   target: `http://127.0.0.1:${config.openclawPort}`,
   changeOrigin: true,
-  pathRewrite: { '^/openclaw': '' },
   ws: true,
 });
 
@@ -217,11 +216,10 @@ server.on('upgrade', (request, socket, head) => {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
-    } else if (request.url.startsWith('/openclaw')) {
-      // OpenClaw WebSocket - proxy to gateway
-      openclawWsProxy.upgrade(request, socket, head);
     } else {
-      socket.destroy();
+      // All other WebSocket connections -> OpenClaw gateway
+      // (OpenClaw iframe connects to root path ws://host/, not /openclaw/)
+      openclawWsProxy.upgrade(request, socket, head);
     }
   });
 });
