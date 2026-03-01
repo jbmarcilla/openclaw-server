@@ -218,7 +218,8 @@ server.on('upgrade', (request, socket, head) => {
       });
     } else {
       // All other WebSocket connections -> OpenClaw gateway
-      // (OpenClaw iframe connects to root path ws://host/, not /openclaw/)
+      // Rewrite Origin header so gateway accepts the connection
+      request.headers.origin = `http://127.0.0.1:${config.openclawPort}`;
       openclawWsProxy.upgrade(request, socket, head);
     }
   });
