@@ -138,6 +138,34 @@ app.get('/api/guide-status', requireAuth, (req, res) => {
   res.json(checks);
 });
 
+// Server info: public IP + HTTPS detection
+app.get('/api/server-info', requireAuth, (req, res) => {
+  const https = require('https');
+
+  const getIP = (url) => new Promise((resolve, reject) => {
+    const mod = url.startsWith('https') ? https : http;
+    const request = mod.get(url, { timeout: 5000 }, (response) => {
+      let data = '';
+      response.on('data', chunk => data += chunk);
+      response.on('end', () => resolve(data.trim()));
+    });
+    request.on('error', reject);
+    request.on('timeout', () => { request.destroy(); reject(new Error('timeout')); });
+  });
+
+  getIP('https://api.ipify.org')
+    .catch(() => getIP('http://checkip.amazonaws.com'))
+    .then((ip) => {
+      res.json({
+        publicIP: ip,
+        isHTTPS: req.get('X-Forwarded-Proto') === 'https' || req.protocol === 'https'
+      });
+    })
+    .catch(() => {
+      res.json({ publicIP: null, isHTTPS: req.get('X-Forwarded-Proto') === 'https' });
+    });
+});
+
 // OpenClaw status check
 app.get('/api/openclaw-status', requireAuth, (req, res) => {
   let done = false;

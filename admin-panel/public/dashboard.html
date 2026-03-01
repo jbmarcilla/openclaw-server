@@ -31,11 +31,29 @@
     <div id="tab-guide" class="tab-content">
       <div class="guide-container">
         <div class="guide-header">
-          <h1>Guia de Instalacion</h1>
-          <p>Sigue estos pasos desde el <strong>Terminal</strong> para configurar OpenClaw</p>
+          <h1>Guia de Configuracion</h1>
+          <p>Sigue estos pasos para configurar <strong>HTTPS</strong> y <strong>OpenClaw</strong> en tu servidor</p>
           <div class="guide-progress">
-            <span id="guide-progress-text">0 de 6 completados</span>
+            <span id="guide-progress-text">0 de 11 completados</span>
             <div class="progress-bar"><div id="guide-progress-bar" class="progress-fill"></div></div>
+          </div>
+        </div>
+
+        <!-- HTTPS Status Banner -->
+        <div id="https-status-banner" class="https-status https-warning">
+          <span class="https-icon">&#9888;</span>
+          <div>
+            <strong>Verificando conexion...</strong>
+            <p>Detectando estado de HTTPS</p>
+          </div>
+        </div>
+
+        <!-- Phase 1: HTTPS -->
+        <div class="phase-header">
+          <div class="phase-icon phase-https">&#128274;</div>
+          <div>
+            <h2>Fase 1: Conexion Segura (HTTPS)</h2>
+            <p>Configura tu dominio con Cloudflare para SSL gratis. No necesitas el terminal.</p>
           </div>
         </div>
 
@@ -44,10 +62,120 @@
             <div class="step-header">
               <div class="step-num-guide">1</div>
               <div class="step-info">
+                <h3>Comprar un Dominio</h3>
+                <p>Necesitas un dominio propio (ej: <code style="display:inline;background:#181825;padding:2px 6px;border-radius:4px;">tuempresa.com</code>). Lo puedes comprar en cualquier registrador.</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(1)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-tip">Registradores populares: Namecheap, GoDaddy, Porkbun. Precio: ~$10/ano</div>
+          </div>
+
+          <div class="guide-step" data-step="2">
+            <div class="step-header">
+              <div class="step-num-guide">2</div>
+              <div class="step-info">
+                <h3>Crear Cuenta en Cloudflare (Gratis)</h3>
+                <p>Cloudflare te da SSL/HTTPS gratis. Crea una cuenta en su sitio web.</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(2)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-link">
+              <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener" class="btn-external">Abrir Cloudflare &#8599;</a>
+            </div>
+            <div class="step-tip">El plan gratuito es suficiente. No necesitas pagar nada.</div>
+          </div>
+
+          <div class="guide-step" data-step="3">
+            <div class="step-header">
+              <div class="step-num-guide">3</div>
+              <div class="step-info">
+                <h3>Agregar Dominio a Cloudflare</h3>
+                <p>En Cloudflare, agrega tu dominio y cambia los nameservers en tu registrador.</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(3)" title="Marcar como completado"></button>
+            </div>
+            <div class="step-substeps">
+              <div class="substep">
+                <span class="substep-num">3a</span>
+                <span>En Cloudflare: click en <strong>"Add a site"</strong> y escribe tu dominio</span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">3b</span>
+                <span>Selecciona el plan <strong>"Free"</strong></span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">3c</span>
+                <span>Cloudflare te da 2 nameservers. Ve a tu registrador y <strong>cambia los nameservers</strong> a los que Cloudflare te indica</span>
+              </div>
+            </div>
+            <div class="step-tip">Los nameservers se cambian en donde compraste tu dominio. Puede tardar hasta 24 horas, pero usualmente toma minutos.</div>
+          </div>
+
+          <div class="guide-step" data-step="4">
+            <div class="step-header">
+              <div class="step-num-guide">4</div>
+              <div class="step-info">
+                <h3>Crear Registro DNS (A Record)</h3>
+                <p>En Cloudflare DNS, crea un registro A que apunte tu dominio a la IP de tu servidor.</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(4)" title="Marcar como completado"></button>
+            </div>
+            <div class="server-ip-card">
+              <div class="server-ip-label">IP Publica de tu Servidor</div>
+              <div class="server-ip-value">
+                <code id="server-ip">Cargando...</code>
+                <button class="btn-copy" onclick="copyServerIP()" id="btn-copy-ip">Copiar IP</button>
+              </div>
+            </div>
+            <div class="step-substeps">
+              <div class="substep">
+                <span class="substep-num">4a</span>
+                <span>En Cloudflare: <strong>DNS &gt; Records &gt; Add Record</strong></span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">4b</span>
+                <span>Type: <strong>A</strong> | Name: <strong>@</strong> (o tu subdominio) | Content: <strong>la IP de arriba</strong></span>
+              </div>
+              <div class="substep">
+                <span class="substep-num">4c</span>
+                <span>Proxy status: <strong>Proxied</strong> (nube naranja activada)</span>
+              </div>
+            </div>
+            <div class="step-tip">Copia la IP de arriba y pegala en el campo "Content" del registro A en Cloudflare.</div>
+          </div>
+
+          <div class="guide-step" data-step="5">
+            <div class="step-header">
+              <div class="step-num-guide">5</div>
+              <div class="step-info">
+                <h3>Verificar HTTPS</h3>
+                <p>Abre tu dominio en el navegador con https:// y verifica que carga correctamente.</p>
+              </div>
+              <button class="btn-check" onclick="toggleStep(5)" title="Marcar como completado"></button>
+            </div>
+            <div id="https-check-result" class="https-check check-pending">&#9888; Verificando...</div>
+            <div class="step-tip">Si el candado aparece en tu navegador, HTTPS esta funcionando. Si no, espera unos minutos y recarga.</div>
+          </div>
+        </div>
+
+        <!-- Phase 2: OpenClaw -->
+        <div class="phase-header">
+          <div class="phase-icon phase-install">&#128736;</div>
+          <div>
+            <h2>Fase 2: Instalacion de OpenClaw</h2>
+            <p>Ejecuta estos comandos desde el tab <strong>Terminal</strong>.</p>
+          </div>
+        </div>
+
+        <div class="guide-steps">
+          <div class="guide-step" data-step="6">
+            <div class="step-header">
+              <div class="step-num-guide">6</div>
+              <div class="step-info">
                 <h3>Instalar OpenClaw</h3>
                 <p>Instala el CLI de OpenClaw globalmente en el servidor</p>
               </div>
-              <button class="btn-check" onclick="toggleStep(1)" title="Marcar como completado"></button>
+              <button class="btn-check" onclick="toggleStep(6)" title="Marcar como completado"></button>
             </div>
             <div class="step-command">
               <code>sudo npm install -g openclaw@latest</code>
@@ -55,14 +183,14 @@
             </div>
           </div>
 
-          <div class="guide-step" data-step="2">
+          <div class="guide-step" data-step="7">
             <div class="step-header">
-              <div class="step-num-guide">2</div>
+              <div class="step-num-guide">7</div>
               <div class="step-info">
                 <h3>Instalar Claude Code</h3>
                 <p>Necesario como provider de IA para OpenClaw</p>
               </div>
-              <button class="btn-check" onclick="toggleStep(2)" title="Marcar como completado"></button>
+              <button class="btn-check" onclick="toggleStep(7)" title="Marcar como completado"></button>
             </div>
             <div class="step-command">
               <code>sudo npm install -g @anthropic-ai/claude-code</code>
@@ -70,14 +198,14 @@
             </div>
           </div>
 
-          <div class="guide-step" data-step="3">
+          <div class="guide-step" data-step="8">
             <div class="step-header">
-              <div class="step-num-guide">3</div>
+              <div class="step-num-guide">8</div>
               <div class="step-info">
                 <h3>Login en Claude</h3>
                 <p>Autenticarse con Anthropic. Va a mostrar un link en la terminal, copialo y pegalo en tu navegador</p>
               </div>
-              <button class="btn-check" onclick="toggleStep(3)" title="Marcar como completado"></button>
+              <button class="btn-check" onclick="toggleStep(8)" title="Marcar como completado"></button>
             </div>
             <div class="step-command">
               <code>claude login</code>
@@ -86,14 +214,14 @@
             <div class="step-tip">Tip: El link que aparece en la terminal lo debes abrir en tu navegador para completar la autenticacion</div>
           </div>
 
-          <div class="guide-step" data-step="4">
+          <div class="guide-step" data-step="9">
             <div class="step-header">
-              <div class="step-num-guide">4</div>
+              <div class="step-num-guide">9</div>
               <div class="step-info">
                 <h3>Configurar OpenClaw</h3>
                 <p>Wizard interactivo que configura autenticacion, gateway y canales (WhatsApp, Telegram, etc.)</p>
               </div>
-              <button class="btn-check" onclick="toggleStep(4)" title="Marcar como completado"></button>
+              <button class="btn-check" onclick="toggleStep(9)" title="Marcar como completado"></button>
             </div>
             <div class="step-command">
               <code>openclaw onboard --install-daemon</code>
@@ -102,14 +230,14 @@
             <div class="step-tip">Este wizard te guia paso a paso. Puedes conectar canales como WhatsApp, Telegram, Discord, Slack y mas</div>
           </div>
 
-          <div class="guide-step" data-step="5">
+          <div class="guide-step" data-step="10">
             <div class="step-header">
-              <div class="step-num-guide">5</div>
+              <div class="step-num-guide">10</div>
               <div class="step-info">
                 <h3>Verificar Gateway</h3>
                 <p>Confirma que el gateway esta corriendo correctamente</p>
               </div>
-              <button class="btn-check" onclick="toggleStep(5)" title="Marcar como completado"></button>
+              <button class="btn-check" onclick="toggleStep(10)" title="Marcar como completado"></button>
             </div>
             <div class="step-command">
               <code>openclaw gateway status</code>
@@ -117,14 +245,14 @@
             </div>
           </div>
 
-          <div class="guide-step" data-step="6">
+          <div class="guide-step" data-step="11">
             <div class="step-header">
-              <div class="step-num-guide">6</div>
+              <div class="step-num-guide">11</div>
               <div class="step-info">
                 <h3>Abrir Dashboard</h3>
                 <p>Ve al tab "OpenClaw Dashboard" para ver el panel completo de administracion</p>
               </div>
-              <button class="btn-check" onclick="toggleStep(6)" title="Marcar como completado"></button>
+              <button class="btn-check" onclick="toggleStep(11)" title="Marcar como completado"></button>
             </div>
             <div class="step-tip">Haz click en el tab "OpenClaw Dashboard" arriba. Si el indicador esta verde, todo esta listo</div>
           </div>
@@ -141,7 +269,7 @@
                 <span class="provider-name">Anthropic (Claude)</span>
                 <span class="provider-tag tag-included">Incluido</span>
               </div>
-              <p>Claude Opus, Sonnet, Haiku. Se configura con <strong>claude login</strong> (paso 3).</p>
+              <p>Claude Opus, Sonnet, Haiku. Se configura con <strong>claude login</strong> (paso 8).</p>
               <div class="provider-model">anthropic/claude-sonnet-4-6</div>
             </div>
 

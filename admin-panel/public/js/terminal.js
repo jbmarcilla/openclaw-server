@@ -244,16 +244,28 @@
     updateGuideUI();
   };
 
-  // Auto-detect installed tools and mark steps
+  // --- Migrate old guide progress (steps 1-6 -> 6-11) ---
+  function migrateGuideProgress() {
+    var MIGRATION_KEY = 'guideProgressMigrated_v2';
+    if (localStorage.getItem(MIGRATION_KEY)) return;
+    var old = getCompleted();
+    if (old.length > 0 && old.every(function (n) { return n <= 6; })) {
+      var migrated = old.map(function (n) { return n + 5; });
+      localStorage.setItem(GUIDE_KEY, JSON.stringify(migrated));
+    }
+    localStorage.setItem(MIGRATION_KEY, 'true');
+  }
+
+  // Auto-detect installed tools and mark steps (new numbering: 6-11)
   function autoDetectSteps() {
     fetch('/api/guide-status')
       .then(function (res) { return res.json(); })
       .then(function (data) {
         var completed = getCompleted();
         var changed = false;
-        if (data.openclaw && completed.indexOf(1) === -1) { completed.push(1); changed = true; }
-        if (data.claude && completed.indexOf(2) === -1) { completed.push(2); changed = true; }
-        if (data.gateway && completed.indexOf(5) === -1) { completed.push(5); changed = true; }
+        if (data.openclaw && completed.indexOf(6) === -1) { completed.push(6); changed = true; }
+        if (data.claude && completed.indexOf(7) === -1) { completed.push(7); changed = true; }
+        if (data.gateway && completed.indexOf(10) === -1) { completed.push(10); changed = true; }
         if (changed) {
           localStorage.setItem(GUIDE_KEY, JSON.stringify(completed));
           updateGuideUI();
@@ -262,9 +274,86 @@
       .catch(function () { /* ignore */ });
   }
 
+  // --- HTTPS / Server Info ---
+  var serverInfo = { publicIP: null, isHTTPS: false };
+
+  function fetchServerInfo() {
+    fetch('/api/server-info')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        serverInfo = data;
+
+        // Update server IP display
+        var ipEl = document.getElementById('server-ip');
+        if (ipEl) ipEl.textContent = data.publicIP || 'No detectada';
+
+        // Determine HTTPS status
+        var isSecure = data.isHTTPS || window.location.protocol === 'https:';
+
+        // Update HTTPS status banner
+        var banner = document.getElementById('https-status-banner');
+        if (banner) {
+          if (isSecure) {
+            banner.className = 'https-status https-ok';
+            banner.innerHTML = '<span class="https-icon">&#128274;</span><div><strong>Conexion Segura Activa (HTTPS)</strong><p>Tu sitio usa HTTPS. Puedes saltar la Fase 1.</p></div>';
+          } else {
+            banner.className = 'https-status https-warning';
+            banner.innerHTML = '<span class="https-icon">&#9888;</span><div><strong>Conexion No Segura (HTTP)</strong><p>OpenClaw necesita HTTPS para funcionar. Sigue la Fase 1 para activarlo gratis con Cloudflare.</p></div>';
+          }
+        }
+
+        // Update HTTPS check in step 5
+        var httpsCheck = document.getElementById('https-check-result');
+        if (httpsCheck) {
+          if (isSecure) {
+            httpsCheck.className = 'https-check check-ok';
+            httpsCheck.innerHTML = '&#10003; HTTPS esta activo en este sitio. Todo listo!';
+          } else {
+            httpsCheck.className = 'https-check check-pending';
+            httpsCheck.innerHTML = '&#9888; Todavia estas usando HTTP. Completa los pasos anteriores y accede via https://tudominio.com';
+          }
+        }
+
+        // Auto-complete HTTPS steps if already on HTTPS
+        if (isSecure) {
+          var completed = getCompleted();
+          var changed = false;
+          for (var i = 1; i <= 5; i++) {
+            if (completed.indexOf(i) === -1) { completed.push(i); changed = true; }
+          }
+          if (changed) {
+            localStorage.setItem(GUIDE_KEY, JSON.stringify(completed));
+            updateGuideUI();
+          }
+        }
+      })
+      .catch(function () {
+        var ipEl = document.getElementById('server-ip');
+        if (ipEl) ipEl.textContent = 'Error al detectar';
+      });
+  }
+
+  window.copyServerIP = function () {
+    var ip = serverInfo.publicIP;
+    if (!ip) return;
+    copyToClipboard(ip).then(function () {
+      var btn = document.getElementById('btn-copy-ip');
+      if (btn) {
+        btn.textContent = 'Copiada!';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = 'Copiar IP';
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+    });
+  };
+
   // Initialize guide on load
+  migrateGuideProgress();
   updateGuideUI();
   autoDetectSteps();
+  fetchServerInfo();
 
   // --- Logout ---
   document.getElementById('logoutBtn').addEventListener('click', function () {

@@ -715,6 +715,196 @@ body {
   }
 }
 
+/* === Guide: Phase Headers === */
+.phase-header {
+  max-width: 700px;
+  margin: 28px auto 14px;
+  padding: 14px 18px;
+  background: #313244;
+  border: 1px solid #45475a;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.phase-header:first-of-type {
+  margin-top: 0;
+}
+
+.phase-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.phase-icon.phase-https { background: rgba(137, 180, 250, 0.15); }
+.phase-icon.phase-install { background: rgba(166, 227, 161, 0.15); }
+
+.phase-header h2 {
+  font-size: 15px;
+  color: #cdd6f4;
+  margin-bottom: 2px;
+}
+
+.phase-header p {
+  font-size: 12px;
+  color: #a6adc8;
+  margin: 0;
+}
+
+/* === HTTPS Status Banner === */
+.https-status {
+  max-width: 700px;
+  margin: 0 auto 20px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.https-status.https-ok {
+  background: rgba(166, 227, 161, 0.08);
+  border: 1px solid rgba(166, 227, 161, 0.3);
+  border-left: 4px solid #a6e3a1;
+}
+
+.https-status.https-warning {
+  background: rgba(250, 179, 135, 0.08);
+  border: 1px solid rgba(250, 179, 135, 0.3);
+  border-left: 4px solid #fab387;
+}
+
+.https-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.https-status strong {
+  display: block;
+  font-size: 14px;
+  color: #cdd6f4;
+  margin-bottom: 2px;
+}
+
+.https-status p {
+  font-size: 12px;
+  color: #a6adc8;
+  margin: 0;
+}
+
+/* === Server IP Card === */
+.server-ip-card {
+  background: #181825;
+  border: 2px dashed #89b4fa;
+  border-radius: 10px;
+  padding: 16px 20px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.server-ip-label {
+  font-size: 11px;
+  color: #a6adc8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.server-ip-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.server-ip-value code {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 20px;
+  color: #89b4fa;
+  font-weight: 700;
+  background: none;
+  padding: 0;
+  letter-spacing: 1px;
+}
+
+/* === External Link Button === */
+.step-link { margin-bottom: 8px; }
+
+.btn-external {
+  display: inline-block;
+  padding: 8px 20px;
+  background: #89b4fa;
+  color: #1e1e2e;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-external:hover { background: #74c7ec; }
+
+/* === Sub-steps === */
+.step-substeps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 12px 16px;
+  background: #181825;
+  border-radius: 8px;
+}
+
+.substep {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #cdd6f4;
+}
+
+.substep-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: #89b4fa;
+  background: rgba(137, 180, 250, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* === HTTPS Check Result === */
+.https-check {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.https-check.check-ok {
+  background: rgba(166, 227, 161, 0.1);
+  border: 1px solid rgba(166, 227, 161, 0.3);
+  color: #a6e3a1;
+}
+
+.https-check.check-pending {
+  background: rgba(249, 226, 175, 0.08);
+  border: 1px solid rgba(249, 226, 175, 0.3);
+  color: #f9e2af;
+}
+
 /* === OpenClaw iframe === */
 #openclaw-iframe {
   width: 100%;
