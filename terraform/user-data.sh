@@ -79,7 +79,7 @@ map $http_upgrade $connection_upgrade {
 
 server {
     listen 80;
-    server_name mayra-content.comuhack.com _;
+    server_name _;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -123,5 +123,4 @@ echo ""
 echo "Admin panel: http://<ELASTIC_IP>"
 echo "Abre en el navegador para crear tu cuenta de administrador"
 echo ""
-echo "Para HTTPS (despues de configurar DNS):"
-echo "  sudo certbot --nginx -d mayra-content.comuhack.com --non-interactive --agree-tos -m tu@email.com"
+echo "Para HTTPS: sigue la guia en el panel de administracion (tab Guia)"

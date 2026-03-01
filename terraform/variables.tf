@@ -17,7 +17,7 @@ variable "key_name" {
 }
 
 variable "admin_domain" {
-  description = "Domain for the admin panel (for SSL certificate)"
+  description = "Domain for the admin panel (optional, configure HTTPS from the admin panel guide)"
   type        = string
-  default     = "mayra-content.comuhack.com"
+  default     = ""
 }

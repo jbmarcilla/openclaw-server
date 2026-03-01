@@ -1,243 +1,260 @@
-# OpenClaw Server - Admin Panel
+# OpenClaw Server
 
-Panel web de administracion para desplegar y gestionar [OpenClaw](https://openclaw.ai) en AWS EC2. Incluye login, terminal web integrado y dashboard de OpenClaw.
+Panel web para desplegar y administrar [OpenClaw](https://openclaw.ai) en la nube. Disenado para que cualquier persona pueda tener su propio servidor de IA, sin necesidad de conocimientos tecnicos avanzados.
 
-## Arquitectura
+## Que incluye
 
-```
-         Internet
-            |
-  https://mayra-content.comuhack.com
-            |
-  +---------+----------+
-  |  Nginx (80/443)    |  <- SSL via Let's Encrypt
-  |  Reverse Proxy     |
-  +---------+----------+
-            | proxy_pass
-  +---------+----------+
-  |  Express.js Admin  |  <- systemd: openclaw-admin
-  |  Panel (:3000)     |
-  |                    |
-  |  /login    -> Login page
-  |  /         -> Dashboard (Terminal + OpenClaw tabs)
-  |  /ws/terminal -> WebSocket terminal (bash)
-  |  /openclaw/*  -> Proxy a OpenClaw Gateway
-  +---------+----------+
-            |
-  +---------+----------+
-  |  OpenClaw Gateway  |  <- localhost:18789
-  |  (instalado via    |     (se instala desde el terminal web)
-  |   terminal web)    |
-  +--------------------+
+- **Panel de administracion web** con login seguro
+- **Terminal integrada** en el navegador (no necesitas SSH)
+- **Guia paso a paso** para configurar HTTPS y OpenClaw
+- **Dashboard de OpenClaw** embebido para gestionar agentes, canales y modelos
+- **Deploy automatico** con Terraform en AWS (un solo comando)
 
-  EC2 t2.small (Ubuntu 22.04, 2GB RAM)
-```
-
-## Estructura del Proyecto
+## Como funciona
 
 ```
-openclaw-server/
-├── admin-panel/                     # Panel web de administracion
-│   ├── package.json                 # Dependencias Node.js
-│   ├── config.js                    # Configuracion (credenciales, puertos)
-│   ├── server.js                    # Express + WebSocket + auth + proxy
-│   └── public/
-│       ├── login.html               # Pagina de login
-│       ├── dashboard.html           # Dashboard (terminal + OpenClaw)
-│       ├── css/style.css            # Estilos (dark theme)
-│       └── js/terminal.js           # Cliente xterm.js
-├── terraform/
-│   ├── main.tf                      # EC2 + Elastic IP + Security Group
-│   ├── variables.tf                 # Variables (region, instancia, dominio)
-│   ├── outputs.tf                   # IP, URL, instrucciones post-deploy
-│   └── user-data.sh                 # Script de instalacion automatica
-├── .github/workflows/
-│   └── deploy.yml                   # CI/CD: deploy al push a main
-├── .env.example                     # Variables de entorno requeridas
-└── readme.md
+Tu navegador
+     |
+  https://tudominio.com
+     |
+  Cloudflare (SSL gratis)
+     |
+  Tu servidor (AWS/Azure/VPS)
+     |
+  +------------------+
+  | Admin Panel      |  <- Lo que instalas con este proyecto
+  |  - Terminal web  |
+  |  - Guia          |
+  |  - Dashboard     |
+  +--------+---------+
+           |
+  +--------+---------+
+  | OpenClaw Gateway |  <- Se instala desde la guia del panel
+  | (agentes de IA)  |
+  +------------------+
 ```
 
-## Requisitos
+---
 
-- **Node.js** >= 18 ([descargar](https://nodejs.org/))
-- **Cuenta AWS** con usuario IAM (permisos EC2, EIP, Security Groups) — solo para deploy en produccion
-- **Terraform** >= 1.0 ([descargar](https://developer.hashicorp.com/terraform/downloads)) — solo para deploy en produccion
-- **Dominio** con acceso a DNS (para HTTPS con Let's Encrypt) — opcional
+## Opcion 1: Deploy en AWS (Recomendado)
 
-## Desarrollo Local
+La forma mas facil. Un comando crea todo automaticamente.
 
-Puedes correr el admin panel localmente para desarrollo o pruebas:
+### Requisitos
+
+1. **Cuenta de AWS** — [Crear cuenta gratis](https://aws.amazon.com/free/)
+2. **Terraform** instalado — [Descargar](https://developer.hashicorp.com/terraform/downloads)
+3. **Git** instalado — [Descargar](https://git-scm.com/downloads)
+
+### Pasos
 
 ```bash
-# 1. Clonar el repo
+# 1. Descargar el proyecto
 git clone https://github.com/jbmarcilla/openclaw-server.git
 cd openclaw-server
 
-# 2. Instalar dependencias
-cd admin-panel
-npm install
-
-# 3. Ejecutar
-npm start
-```
-
-Abre http://localhost:3000 en tu navegador.
-
-| Credencial | Valor |
-|------------|-------|
-| **Usuario** | `admin` |
-| **Password** | `OpenClaw2026!` |
-
-El terminal web abrira una sesion bash en tu maquina local. La pestana de OpenClaw mostrara "no esta corriendo" a menos que tengas OpenClaw Gateway en el puerto 18789.
-
-### Variables de entorno opcionales
-
-| Variable | Default | Descripcion |
-|----------|---------|-------------|
-| `ADMIN_PORT` | `3000` | Puerto del servidor |
-| `SESSION_SECRET` | auto-generado | Secreto para sesiones |
-| `OPENCLAW_PORT` | `18789` | Puerto del gateway OpenClaw |
-| `ADMIN_DOMAIN` | `mayra-content.comuhack.com` | Dominio para SSL |
-
-Ejemplo:
-
-```bash
-ADMIN_PORT=4000 npm start
-```
-
-## Despliegue en AWS (Produccion)
-
-```bash
-# 1. Clonar
-git clone https://github.com/jbmarcilla/openclaw-server.git
-cd openclaw-server
-
-# 2. Configurar credenciales AWS
+# 2. Configurar credenciales de AWS
 cp .env.example .env
-# Editar .env con tus credenciales:
+# Edita .env con tus credenciales AWS:
 #   AWS_ACCESS_KEY_ID=tu-key
 #   AWS_SECRET_ACCESS_KEY=tu-secret
 #   AWS_REGION=us-west-2
 
-# 3. Crear infraestructura
+# 3. Crear el servidor (toma ~3 minutos)
 export $(grep -v '^#' .env | xargs)
 cd terraform
 terraform init
-terraform apply -var="aws_region=$AWS_REGION"
+terraform apply
 
-# 4. Guardar clave SSH
+# 4. Guardar la clave SSH (por si necesitas acceso directo)
 terraform output -raw private_key > ../openclaw-server-key.pem
 chmod 400 ../openclaw-server-key.pem
 
-# 5. Ver IP y pasos siguientes
+# 5. Ver la IP de tu servidor
 terraform output elastic_ip
-terraform output post_deploy
 ```
 
-Terraform crea automaticamente:
+**Listo.** Espera 3-5 minutos y abre `http://<TU_IP>` en el navegador.
+
+### Que se crea automaticamente
 
 | Recurso | Detalle |
 |---------|---------|
-| EC2 (t2.small) | Ubuntu 22.04, 2GB RAM, 20GB disco |
-| Elastic IP | IP publica fija |
-| Security Group | Puertos 22 (SSH), 80 (HTTP), 443 (HTTPS) |
-| SSH Key Pair | RSA 4096-bit, auto-generado |
-| Admin Panel | Express.js + xterm.js en puerto 3000 |
-| Nginx | Reverse proxy 80/443 -> 3000 |
+| Servidor EC2 | Ubuntu 22.04, 2GB RAM, 20GB disco |
+| IP fija | Elastic IP (no cambia al reiniciar) |
+| Firewall | Puertos 22, 80, 443 abiertos |
+| Admin Panel | Express.js + terminal web |
+| Nginx | Reverse proxy |
 
-## Post-Deploy
-
-### 1. Acceder al Admin Panel
-
-Esperar 3-5 minutos despues de `terraform apply`, luego abrir:
-
-```
-http://<ELASTIC_IP>
-```
-
-| Credencial | Valor |
-|------------|-------|
-| **Usuario** | `admin` |
-| **Password** | `OpenClaw2026!` |
-
-### 2. Instalar OpenClaw (desde el terminal web)
-
-Una vez logueado, en la pestana **Terminal** ejecutar:
-
-```bash
-sudo npm install -g openclaw@latest @anthropic-ai/claude-code
-claude login          # Seguir instrucciones (abrir link en navegador)
-openclaw gateway install --port 18789
-```
-
-### 3. Verificar OpenClaw
-
-Cambiar a la pestana **OpenClaw Dashboard** y hacer clic en **Actualizar Estado**. Deberia mostrar el dashboard de OpenClaw.
-
-### 4. Habilitar HTTPS (opcional)
-
-Agregar un registro DNS A apuntando al Elastic IP:
-
-```
-mayra-content.comuhack.com -> <ELASTIC_IP>
-```
-
-Luego, en el terminal web:
-
-```bash
-sudo certbot --nginx -d mayra-content.comuhack.com --non-interactive --agree-tos -m tu@email.com
-```
-
-Ahora acceder via `https://mayra-content.comuhack.com`.
-
-## CI/CD con GitHub Actions
-
-Cada push a `main` actualiza el servidor automaticamente.
-
-### Configurar GitHub Secrets
-
-En GitHub: **Settings > Secrets and variables > Actions > New repository secret**
-
-| Secret | Descripcion | Como obtenerlo |
-|--------|-------------|----------------|
-| `EC2_HOST` | IP del servidor | `terraform output elastic_ip` |
-| `EC2_SSH_KEY` | Clave privada SSH completa | `terraform output -raw private_key` |
-
-## Comandos Utiles
-
-```bash
-# Estado del admin panel
-sudo systemctl status openclaw-admin
-sudo journalctl -u openclaw-admin -f
-
-# Log de instalacion inicial
-cat /var/log/admin-panel-setup.log
-
-# SSH al servidor
-ssh -i openclaw-server-key.pem ubuntu@<ELASTIC_IP>
-
-# Terraform
-cd terraform
-terraform output              # Ver outputs
-terraform output elastic_ip   # Solo la IP
-terraform destroy             # Destruir todo
-```
-
-## Puertos
-
-| Puerto | Servicio | Acceso |
-|--------|----------|--------|
-| 22 | SSH | Publico (clave SSH) |
-| 80 | Nginx -> Admin Panel | Publico (redirige a 443 con HTTPS) |
-| 443 | Nginx -> Admin Panel | Publico (SSL) |
-| 3000 | Admin Panel (Express) | Solo localhost |
-| 18789 | OpenClaw Gateway | Solo localhost (via proxy /openclaw/) |
-
-## Costos Estimados (AWS)
+### Costo estimado
 
 | Recurso | Costo |
 |---------|-------|
-| EC2 t2.small (2GB RAM) | ~$17/mes |
-| Elastic IP (en uso) | Gratis |
-| EBS 20GB gp3 | ~$1.60/mes |
+| EC2 t2.small | ~$17/mes |
+| Disco 20GB | ~$1.60/mes |
 | **Total** | **~$19/mes** |
+
+> AWS tiene un [Free Tier](https://aws.amazon.com/free/) que incluye 12 meses de t2.micro gratis (1GB RAM). Funciona para pruebas pero puede ser lento.
+
+---
+
+## Opcion 2: Instalar en cualquier VPS
+
+Si ya tienes un servidor Ubuntu (DigitalOcean, Linode, Hetzner, Azure, etc.):
+
+```bash
+# Desde tu computadora, reemplaza con tu IP y clave SSH:
+./scripts/quick-deploy.sh <IP_DEL_SERVIDOR> <RUTA_CLAVE_SSH>
+```
+
+Esto instala todo automaticamente en tu servidor existente.
+
+### Requisitos del servidor
+
+- Ubuntu 20.04 o 22.04
+- Minimo 2GB RAM
+- Puerto 80 abierto
+
+---
+
+## Despues del deploy
+
+### 1. Crear tu cuenta
+
+Abre `http://<TU_IP>` en el navegador. La primera vez veras un wizard para crear tu usuario y contrasena.
+
+### 2. Seguir la guia
+
+Una vez logueado, ve al tab **"Guia"**. Ahi encontraras todos los pasos:
+
+**Fase 1 — Configurar HTTPS (desde el navegador)**
+1. Tener un dominio o subdominio
+2. Crear cuenta gratis en Cloudflare
+3. Agregar dominio a Cloudflare
+4. Crear registro DNS apuntando a tu servidor
+5. Verificar que HTTPS funciona
+
+**Fase 2 — Instalar OpenClaw (desde el terminal web)**
+6. Instalar OpenClaw CLI
+7. Instalar Claude Code
+8. Login en Claude
+9. Configurar OpenClaw (wizard interactivo)
+10. Verificar gateway
+11. Abrir el dashboard de OpenClaw
+
+Cada paso tiene instrucciones detalladas, botones para copiar comandos, y deteccion automatica de progreso.
+
+### 3. Conectar canales
+
+Desde el dashboard de OpenClaw puedes conectar:
+- WhatsApp
+- Telegram
+- Discord
+- Slack
+- Y mas
+
+### 4. Elegir modelos de IA
+
+El panel soporta multiples proveedores:
+
+| Provider | Modelos | Tipo |
+|----------|---------|------|
+| Anthropic (Claude) | Opus, Sonnet, Haiku | Incluido con Claude login |
+| OpenAI | GPT-4o, GPT-5, o1 | API Key |
+| Google | Gemini 2.0 Flash, Pro | API Key |
+| Ollama | Llama 3, Mistral, DeepSeek | Gratis / Local |
+| OpenRouter | 100+ modelos | API Key |
+
+---
+
+## Desarrollo local
+
+Para contribuir o probar cambios:
+
+```bash
+git clone https://github.com/jbmarcilla/openclaw-server.git
+cd openclaw-server/admin-panel
+npm install
+npm start
+```
+
+Abre http://localhost:3000. La primera vez crearas tu cuenta en el wizard.
+
+---
+
+## Estructura del proyecto
+
+```
+openclaw-server/
+├── admin-panel/              # Panel web
+│   ├── server.js             # Servidor Express + WebSocket + proxy
+│   ├── config.js             # Configuracion
+│   ├── package.json
+│   └── public/
+│       ├── setup.html        # Wizard primera vez
+│       ├── login.html        # Login
+│       ├── dashboard.html    # Dashboard (terminal + guia + OpenClaw)
+│       ├── css/style.css     # Estilos (dark theme)
+│       └── js/terminal.js    # Terminal + guia + logica
+├── terraform/                # Infraestructura AWS
+│   ├── main.tf               # EC2 + IP + Security Group
+│   ├── variables.tf          # Variables configurables
+│   ├── outputs.tf            # Outputs post-deploy
+│   └── user-data.sh          # Script de instalacion automatica
+├── scripts/
+│   └── quick-deploy.sh       # Deploy rapido a cualquier VPS
+├── .github/workflows/
+│   └── deploy.yml            # CI/CD automatico
+├── LICENSE                   # MIT License
+└── readme.md
+```
+
+---
+
+## CI/CD (deploy automatico)
+
+Cada push a `main` actualiza el servidor automaticamente via GitHub Actions.
+
+### Configurar
+
+En GitHub: **Settings > Secrets > Actions**, agrega:
+
+| Secret | Valor |
+|--------|-------|
+| `EC2_HOST` | IP de tu servidor |
+| `EC2_SSH_KEY` | Contenido del archivo .pem |
+
+---
+
+## Comandos utiles
+
+```bash
+# Ver estado del admin panel (en el servidor)
+sudo systemctl status openclaw-admin
+sudo journalctl -u openclaw-admin -f
+
+# SSH directo al servidor
+ssh -i openclaw-server-key.pem ubuntu@<TU_IP>
+
+# Destruir infraestructura AWS
+cd terraform && terraform destroy
+```
+
+---
+
+## Contribuir
+
+Las contribuciones son bienvenidas. Puedes:
+
+1. Hacer fork del proyecto
+2. Crear una rama (`git checkout -b mi-mejora`)
+3. Hacer commit de tus cambios
+4. Abrir un Pull Request
+
+---
+
+## Licencia
+
+[MIT License](LICENSE) — Libre de usar, copiar, modificar y distribuir. Solo se requiere mantener la atribucion al autor original.
+
+Creado por [Joseph Marcilla Flores](https://github.com/jbmarcilla).
