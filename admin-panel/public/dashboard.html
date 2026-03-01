@@ -129,6 +129,79 @@
             <div class="step-tip">Haz click en el tab "OpenClaw Dashboard" arriba. Si el indicador esta verde, todo esta listo</div>
           </div>
         </div>
+
+        <!-- Providers / Modelos -->
+        <div class="guide-section">
+          <h2>Modelos y Providers Disponibles</h2>
+          <p>OpenClaw soporta multiples modelos de IA. Puedes conectar varios al mismo tiempo.</p>
+
+          <div class="provider-grid">
+            <div class="provider-card">
+              <div class="provider-header">
+                <span class="provider-name">Anthropic (Claude)</span>
+                <span class="provider-tag tag-included">Incluido</span>
+              </div>
+              <p>Claude Opus, Sonnet, Haiku. Se configura con <strong>claude login</strong> (paso 3).</p>
+              <div class="provider-model">anthropic/claude-sonnet-4-6</div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <span class="provider-name">OpenAI (GPT)</span>
+                <span class="provider-tag tag-api">API Key</span>
+              </div>
+              <p>GPT-4o, GPT-5, o1. Necesitas una API key de OpenAI.</p>
+              <div class="provider-model">openai/gpt-4o</div>
+              <div class="step-command">
+                <code>openclaw config set models.default openai/gpt-4o</code>
+                <button class="btn-copy" onclick="copyCommand(this)" data-cmd="openclaw config set models.default openai/gpt-4o">Copiar</button>
+              </div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <span class="provider-name">Google (Gemini)</span>
+                <span class="provider-tag tag-api">API Key</span>
+              </div>
+              <p>Gemini 2.0 Flash, Gemini Pro. Necesitas API key de Google AI.</p>
+              <div class="provider-model">google/gemini-2.0-flash</div>
+              <div class="step-command">
+                <code>openclaw config set models.default google/gemini-2.0-flash</code>
+                <button class="btn-copy" onclick="copyCommand(this)" data-cmd="openclaw config set models.default google/gemini-2.0-flash">Copiar</button>
+              </div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <span class="provider-name">Ollama (Local)</span>
+                <span class="provider-tag tag-free">Gratis / Local</span>
+              </div>
+              <p>Llama 3, Mistral, DeepSeek. Corre en tu servidor, sin API key.</p>
+              <div class="provider-model">ollama/llama3.1:70b</div>
+              <div class="step-command">
+                <code>curl -fsSL https://ollama.com/install.sh | sh</code>
+                <button class="btn-copy" onclick="copyCommand(this)" data-cmd="curl -fsSL https://ollama.com/install.sh | sh">Copiar</button>
+              </div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <span class="provider-name">OpenRouter</span>
+                <span class="provider-tag tag-api">API Key</span>
+              </div>
+              <p>Acceso a 100+ modelos con una sola API key. Claude, GPT, Llama, Mistral, etc.</p>
+              <div class="provider-model">openrouter/anthropic/claude-sonnet</div>
+            </div>
+
+            <div class="provider-card">
+              <div class="provider-header">
+                <span class="provider-name">Otros Providers</span>
+              </div>
+              <p>xAI (Grok), Mistral, DeepSeek, Groq, Cerebras, Hugging Face, LM Studio, GitHub Copilot.</p>
+              <div class="step-tip">Usa el wizard <code style="display:inline;background:#181825;padding:2px 6px;border-radius:4px;">openclaw onboard</code> para configurar cualquier provider</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div id="tab-openclaw" class="tab-content">

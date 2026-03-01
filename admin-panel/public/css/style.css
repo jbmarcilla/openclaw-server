@@ -613,6 +613,108 @@ body {
   border-left: 3px solid #f9e2af;
 }
 
+/* === Guide: Providers Section === */
+.guide-section {
+  max-width: 700px;
+  margin: 32px auto 0;
+  padding-top: 28px;
+  border-top: 1px solid #45475a;
+}
+
+.guide-section h2 {
+  font-size: 18px;
+  color: #cdd6f4;
+  margin-bottom: 6px;
+}
+
+.guide-section > p {
+  font-size: 13px;
+  color: #a6adc8;
+  margin-bottom: 20px;
+}
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.provider-card {
+  background: #313244;
+  border: 1px solid #45475a;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.provider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.provider-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cdd6f4;
+}
+
+.provider-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.tag-included {
+  background: rgba(166, 227, 161, 0.15);
+  color: #a6e3a1;
+}
+
+.tag-api {
+  background: rgba(137, 180, 250, 0.15);
+  color: #89b4fa;
+}
+
+.tag-free {
+  background: rgba(148, 226, 213, 0.15);
+  color: #94e2d5;
+}
+
+.provider-card p {
+  font-size: 12px;
+  color: #a6adc8;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.provider-model {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  color: #89b4fa;
+  background: #181825;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.provider-card .step-command {
+  margin-bottom: 0;
+  margin-top: 8px;
+}
+
+.provider-card .step-command code {
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .provider-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* === OpenClaw iframe === */
 #openclaw-iframe {
   width: 100%;

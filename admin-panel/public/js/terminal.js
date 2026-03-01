@@ -173,10 +173,25 @@
   checkOpenClawStatus();
   setInterval(checkOpenClawStatus, 30000);
 
-  // --- Guide: Copy to clipboard ---
+  // --- Guide: Copy to clipboard (works on HTTP too) ---
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    }
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return Promise.resolve();
+  }
+
   window.copyCommand = function (btn) {
     var cmd = btn.getAttribute('data-cmd');
-    navigator.clipboard.writeText(cmd).then(function () {
+    copyToClipboard(cmd).then(function () {
       btn.textContent = 'Copiado!';
       btn.classList.add('copied');
       setTimeout(function () {
@@ -229,8 +244,27 @@
     updateGuideUI();
   };
 
+  // Auto-detect installed tools and mark steps
+  function autoDetectSteps() {
+    fetch('/api/guide-status')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var completed = getCompleted();
+        var changed = false;
+        if (data.openclaw && completed.indexOf(1) === -1) { completed.push(1); changed = true; }
+        if (data.claude && completed.indexOf(2) === -1) { completed.push(2); changed = true; }
+        if (data.gateway && completed.indexOf(5) === -1) { completed.push(5); changed = true; }
+        if (changed) {
+          localStorage.setItem(GUIDE_KEY, JSON.stringify(completed));
+          updateGuideUI();
+        }
+      })
+      .catch(function () { /* ignore */ });
+  }
+
   // Initialize guide on load
   updateGuideUI();
+  autoDetectSteps();
 
   // --- Logout ---
   document.getElementById('logoutBtn').addEventListener('click', function () {

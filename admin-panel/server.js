@@ -123,6 +123,21 @@ app.get('/', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+// Guide: detect installed tools
+app.get('/api/guide-status', requireAuth, (req, res) => {
+  const { execSync } = require('child_process');
+  const checks = {};
+
+  try { execSync('which openclaw', { stdio: 'ignore' }); checks.openclaw = true; } catch (e) { checks.openclaw = false; }
+  try { execSync('which claude', { stdio: 'ignore' }); checks.claude = true; } catch (e) { checks.claude = false; }
+  try {
+    const out = execSync('openclaw gateway status 2>&1', { encoding: 'utf8', timeout: 5000 });
+    checks.gateway = /running|active/i.test(out);
+  } catch (e) { checks.gateway = false; }
+
+  res.json(checks);
+});
+
 // OpenClaw status check
 app.get('/api/openclaw-status', requireAuth, (req, res) => {
   let done = false;
