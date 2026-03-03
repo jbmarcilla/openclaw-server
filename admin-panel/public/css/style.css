@@ -12,6 +12,25 @@ body {
   min-height: 100vh;
 }
 
+/* === HTTP Warning Banner === */
+.http-warning {
+  width: 100%;
+  padding: 8px 16px;
+  background: rgba(250, 179, 135, 0.12);
+  border-bottom: 1px solid rgba(250, 179, 135, 0.3);
+  color: #fab387;
+  font-size: 13px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.login-page .http-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+}
+
 /* === Login Page === */
 .login-page {
   display: flex;

@@ -1,6 +1,12 @@
 (function () {
   'use strict';
 
+  // --- HTTP Warning Banner ---
+  if (location.protocol === 'http:') {
+    var httpWarning = document.getElementById('httpWarning');
+    if (httpWarning) httpWarning.style.display = 'block';
+  }
+
   // --- Terminal setup ---
   var termContainer = document.getElementById('terminal-container');
   var term = new Terminal({

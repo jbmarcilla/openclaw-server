@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-page">
+  <div class="http-warning" id="httpWarning" style="display:none;">&#9888; Conexion no segura (HTTP) — Configura HTTPS en la Guia para proteger tu servidor</div>
   <div class="login-container">
     <div class="login-header">
       <div class="login-icon">&#128030;</div>
@@ -27,6 +28,8 @@
     </form>
   </div>
   <script>
+    if (location.protocol === 'http:') document.getElementById('httpWarning').style.display = 'block';
+
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const errorEl = document.getElementById('error-message');

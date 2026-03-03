@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="login-page">
+  <div class="http-warning" id="httpWarning" style="display:none;">&#9888; Conexion no segura (HTTP) — Configura HTTPS en la Guia para proteger tu servidor</div>
   <div class="login-container">
     <!-- Steps indicator -->
     <div class="steps">
@@ -58,6 +59,8 @@
     </div>
   </div>
   <script>
+    if (location.protocol === 'http:') document.getElementById('httpWarning').style.display = 'block';
+
     // Show token field if setup token is required
     fetch('/api/setup-token-required').then(r => r.json()).then(d => {
       if (d.required) document.getElementById('tokenGroup').style.display = 'block';
