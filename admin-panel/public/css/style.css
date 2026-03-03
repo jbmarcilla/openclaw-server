@@ -346,6 +346,22 @@ body {
   background: rgba(243, 139, 168, 0.12);
 }
 
+.dropdown-item-link {
+  text-decoration: none;
+  color: #89b4fa;
+  display: block;
+}
+
+.dropdown-item-link:hover {
+  background: rgba(137, 180, 250, 0.1);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #45475a;
+  margin: 4px 0;
+}
+
 /* === Reset Modal === */
 .modal-overlay {
   position: fixed;
