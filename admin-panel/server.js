@@ -5,12 +5,66 @@ const { WebSocketServer } = require('ws');
 const pty = require('node-pty');
 const bcrypt = require('bcryptjs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 const { loadConfig, saveConfig, isSetupDone, CONFIG_DIR, CONFIG_FILE } = require('./config');
 
 let config = loadConfig();
 const app = express();
 const server = http.createServer(app);
+
+// --- Security: Setup token (generated once, shown in server logs) ---
+const SETUP_TOKEN_FILE = path.join(CONFIG_DIR, '.setup-token');
+
+function getOrCreateSetupToken() {
+  if (isSetupDone()) return null;
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+  }
+  if (fs.existsSync(SETUP_TOKEN_FILE)) {
+    return fs.readFileSync(SETUP_TOKEN_FILE, 'utf8').trim();
+  }
+  const token = crypto.randomBytes(4).toString('hex'); // 8-char hex token
+  fs.writeFileSync(SETUP_TOKEN_FILE, token, { mode: 0o600 });
+  return token;
+}
+
+// --- Security: Helmet (security headers) ---
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      frameSrc: ["'self'"],
+      connectSrc: ["'self'", "wss:", "ws:"],
+      imgSrc: ["'self'", "data:"],
+    }
+  },
+  crossOriginEmbedderPolicy: false, // needed for CDN scripts
+}));
+
+// --- Security: Rate limiting ---
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiados intentos. Intenta en 15 minutos.' }
+});
+
+const setupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiados intentos. Intenta en 15 minutos.' }
+});
 
 // Session middleware
 const sessionMiddleware = session({
@@ -20,7 +74,8 @@ const sessionMiddleware = session({
   cookie: {
     secure: false, // Nginx handles SSL, internal is HTTP
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    sameSite: 'strict',
+    maxAge: 4 * 60 * 60 * 1000 // 4 hours (reduced from 24h)
   }
 });
 
@@ -28,8 +83,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(sessionMiddleware);
 
-// Trust Nginx proxy
-app.set('trust proxy', 1);
+// Trust Nginx proxy (loopback only)
+app.set('trust proxy', 'loopback');
 
 // Setup check middleware - redirect to /setup if first time
 function requireSetup(req, res, next) {
@@ -59,18 +114,28 @@ app.get('/setup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'setup.html'));
 });
 
-app.post('/api/setup', (req, res) => {
+app.get('/api/setup-token-required', (req, res) => {
+  res.json({ required: !isSetupDone() });
+});
+
+app.post('/api/setup', setupLimiter, (req, res) => {
   if (isSetupDone()) {
     return res.status(403).json({ success: false, message: 'La cuenta ya fue creada' });
   }
 
-  const { username, password, confirmPassword } = req.body;
+  const { username, password, confirmPassword, setupToken } = req.body;
+
+  // Verify setup token
+  const expectedToken = getOrCreateSetupToken();
+  if (expectedToken && setupToken !== expectedToken) {
+    return res.status(403).json({ success: false, message: 'Token de setup incorrecto. Revisa los logs del servidor.' });
+  }
 
   if (!username || username.length < 3) {
     return res.status(400).json({ success: false, message: 'El usuario debe tener al menos 3 caracteres' });
   }
-  if (!password || password.length < 6) {
-    return res.status(400).json({ success: false, message: 'La password debe tener al menos 6 caracteres' });
+  if (!password || password.length < 12) {
+    return res.status(400).json({ success: false, message: 'La password debe tener al menos 12 caracteres' });
   }
   if (password !== confirmPassword) {
     return res.status(400).json({ success: false, message: 'Las passwords no coinciden' });
@@ -81,6 +146,9 @@ app.post('/api/setup', (req, res) => {
     passwordHash: bcrypt.hashSync(password, 10)
   };
   saveConfig(config);
+
+  // Clean up setup token
+  try { fs.unlinkSync(SETUP_TOKEN_FILE); } catch (e) { /* ignore */ }
 
   res.json({ success: true, redirect: '/login' });
 });
@@ -93,17 +161,21 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', loginLimiter, (req, res) => {
   if (!isSetupDone()) {
     return res.status(403).json({ success: false, message: 'Primero crea tu cuenta en /setup' });
   }
 
   const { username, password } = req.body;
-  if (
-    config.credentials &&
-    username === config.credentials.username &&
-    bcrypt.compareSync(password, config.credentials.passwordHash)
-  ) {
+
+  // Constant-time comparison: always run bcrypt to prevent timing attacks
+  const usernameMatch = config.credentials && username === config.credentials.username;
+  const passwordMatch = bcrypt.compareSync(
+    password || '',
+    (config.credentials && config.credentials.passwordHash) || '$2a$10$invalidhashplaceholderxxxxxxxxxxxxxxxxxxxxxxxxx'
+  );
+
+  if (usernameMatch && passwordMatch) {
     req.session.authenticated = true;
     req.session.username = username;
     res.json({ success: true });
@@ -119,10 +191,17 @@ app.post('/api/logout', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// Reset server to initial state
+// Reset server to initial state (requires password re-verification)
 app.post('/api/reset-server', requireAuth, (req, res) => {
-  const fs = require('fs');
   const { execSync } = require('child_process');
+  const { password } = req.body;
+
+  // Re-verify password for destructive action
+  if (!password || !config.credentials ||
+      !bcrypt.compareSync(password, config.credentials.passwordHash)) {
+    return res.status(403).json({ success: false, message: 'Password incorrecta' });
+  }
+
   const errors = [];
 
   // 1. Try to uninstall OpenClaw gateway
@@ -137,7 +216,7 @@ app.post('/api/reset-server', requireAuth, (req, res) => {
       fs.rmSync(openclawDir, { recursive: true, force: true });
     }
   } catch (e) {
-    errors.push('No se pudo eliminar ~/.openclaw: ' + e.message);
+    errors.push('No se pudo eliminar configuracion de OpenClaw');
   }
 
   // 3. Remove admin config file (~/.openclaw-admin/config.json)
@@ -146,7 +225,7 @@ app.post('/api/reset-server', requireAuth, (req, res) => {
       fs.unlinkSync(CONFIG_FILE);
     }
   } catch (e) {
-    errors.push('No se pudo eliminar config: ' + e.message);
+    errors.push('No se pudo eliminar configuracion de admin');
   }
 
   // 4. Reload config in memory (now credentials are gone, isSetupDone() returns false)
@@ -293,14 +372,20 @@ server.on('upgrade', (request, socket, head) => {
 });
 
 wss.on('connection', (ws) => {
+  // Security: only pass whitelisted env vars to the shell
   const shell = pty.spawn('bash', [], {
     name: 'xterm-256color',
     cols: 80,
     rows: 24,
     cwd: process.env.HOME || '/home/ubuntu',
     env: {
-      ...process.env,
-      TERM: 'xterm-256color'
+      PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
+      HOME: process.env.HOME || '/home/ubuntu',
+      USER: process.env.USER || 'ubuntu',
+      LANG: process.env.LANG || 'en_US.UTF-8',
+      TERM: 'xterm-256color',
+      DBUS_SESSION_BUS_ADDRESS: process.env.DBUS_SESSION_BUS_ADDRESS || '',
+      XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || '',
     }
   });
 
@@ -351,6 +436,13 @@ process.on('unhandledRejection', (err) => {
 server.listen(config.port, '127.0.0.1', () => {
   console.log(`OpenClaw Admin Panel running on http://127.0.0.1:${config.port}`);
   if (!isSetupDone()) {
-    console.log('First time setup: visit /setup to create your account');
+    const token = getOrCreateSetupToken();
+    console.log('');
+    console.log('===========================================');
+    console.log('  FIRST TIME SETUP');
+    console.log('  Setup Token: ' + token);
+    console.log('  You will need this token to create your account');
+    console.log('===========================================');
+    console.log('');
   }
 });

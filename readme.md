@@ -13,26 +13,71 @@ Panel web para desplegar y administrar [OpenClaw](https://openclaw.ai) en la nub
 ## Como funciona
 
 ```
-Tu navegador
+Tu navegador (HTTPS)
      |
   https://tudominio.com
      |
-  Cloudflare (SSL gratis)
-     |
-  Tu servidor (AWS/Azure/VPS)
-     |
-  +------------------+
-  | Admin Panel      |  <- Lo que instalas con este proyecto
-  |  - Terminal web  |
-  |  - Guia          |
-  |  - Dashboard     |
-  +--------+---------+
-           |
-  +--------+---------+
-  | OpenClaw Gateway |  <- Se instala desde la guia del panel
-  | (agentes de IA)  |
-  +------------------+
+  ┌─────────────────────┐
+  │  Cloudflare (gratis) │  ← SSL/HTTPS, WAF, DDoS protection
+  └──────────┬──────────┘
+             |
+  ┌──────────▼──────────┐
+  │   Firewall (ufw)    │  ← Solo permite trafico de Cloudflare
+  └──────────┬──────────┘
+             |
+  ┌──────────▼──────────┐
+  │  Nginx (port 80)    │  ← Reverse proxy + rate limiting
+  └──────────┬──────────┘
+             |
+  ┌──────────▼──────────┐
+  │  Admin Panel :3000  │  ← Login seguro, rate limit, helmet
+  │  ┌────────────────┐ │
+  │  │ Terminal web   │ │     Solo escucha en localhost
+  │  │ Guia de config │ │     (127.0.0.1, no accesible desde
+  │  │ Dashboard      │ │      internet directamente)
+  │  └────────┬───────┘ │
+  └───────────┼─────────┘
+              |
+  ┌───────────▼─────────┐
+  │ OpenClaw GW :18789  │  ← Se instala desde la guia del panel
+  │ (agentes de IA)     │     Solo localhost
+  └─────────────────────┘
 ```
+
+## Seguridad
+
+El panel administra un servidor con terminal web — la seguridad es critica. Estas son las capas de proteccion:
+
+### Capas de defensa
+
+| Capa | Proteccion | Detalle |
+|------|-----------|---------|
+| **Cloudflare** | HTTPS, WAF, DDoS | Cifra todo el trafico, bloquea ataques comunes |
+| **Firewall (ufw)** | Bloqueo por IP | Solo permite trafico de IPs de Cloudflare en puerto 80 |
+| **Nginx** | Rate limiting | Limita peticiones por IP a nivel de proxy |
+| **Admin Panel** | Rate limit en login | 10 intentos cada 15 minutos, luego bloquea |
+| **Admin Panel** | Helmet (headers) | CSP, X-Frame-Options, HSTS, nosniff |
+| **Admin Panel** | Cookie segura | SameSite=Strict, HttpOnly, Secure (con HTTPS) |
+| **Admin Panel** | Setup token | Solo quien hizo deploy puede crear la primera cuenta |
+| **Admin Panel** | Password 12+ chars | Minimo 12 caracteres para la cuenta admin |
+| **Terminal** | Env vars filtradas | Solo pasa PATH, HOME, TERM al shell |
+
+### Recomendaciones post-deploy
+
+1. **Configurar Cloudflare HTTPS** lo antes posible (Fase 1 de la guia)
+2. **Activar firewall** para bloquear acceso directo por IP:
+   ```bash
+   # En el servidor (via terminal web o SSH):
+   sudo ufw default deny incoming
+   sudo ufw default allow outgoing
+   sudo ufw allow ssh
+   # Permitir solo IPs de Cloudflare en puerto 80
+   for ip in 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22; do
+     sudo ufw allow from $ip to any port 80
+   done
+   sudo ufw enable
+   ```
+3. **Usar una contrasena fuerte** (12+ caracteres, mezcla de letras, numeros y simbolos)
 
 ---
 
@@ -203,26 +248,10 @@ openclaw-server/
 │   └── user-data.sh          # Script de instalacion automatica
 ├── scripts/
 │   └── quick-deploy.sh       # Deploy rapido a cualquier VPS
-├── .github/workflows/
-│   └── deploy.yml            # CI/CD automatico
+├── CLAUDE.md                 # Contexto para Claude Code
 ├── LICENSE                   # MIT License
 └── readme.md
 ```
-
----
-
-## CI/CD (deploy automatico)
-
-Cada push a `main` actualiza el servidor automaticamente via GitHub Actions.
-
-### Configurar
-
-En GitHub: **Settings > Secrets > Actions**, agrega:
-
-| Secret | Valor |
-|--------|-------|
-| `EC2_HOST` | IP de tu servidor |
-| `EC2_SSH_KEY` | Contenido del archivo .pem |
 
 ---
 

@@ -380,12 +380,15 @@
   var resetInput = document.getElementById('resetConfirmInput');
   var resetConfirmBtn = document.getElementById('resetConfirmBtn');
 
+  var resetPasswordInput = document.getElementById('resetPasswordInput');
+
   document.getElementById('resetBtn').addEventListener('click', function () {
     accountMenu.classList.remove('open');
     resetModal.style.display = 'flex';
     resetInput.value = '';
+    resetPasswordInput.value = '';
     resetConfirmBtn.disabled = true;
-    setTimeout(function () { resetInput.focus(); }, 100);
+    setTimeout(function () { resetPasswordInput.focus(); }, 100);
   });
 
   document.getElementById('resetCancelBtn').addEventListener('click', function () {
@@ -396,24 +399,33 @@
     if (e.target === resetModal) resetModal.style.display = 'none';
   });
 
-  resetInput.addEventListener('input', function () {
-    resetConfirmBtn.disabled = resetInput.value.trim() !== 'RESET';
-  });
+  function checkResetReady() {
+    resetConfirmBtn.disabled = resetInput.value.trim() !== 'RESET' || resetPasswordInput.value.length < 1;
+  }
+  resetInput.addEventListener('input', checkResetReady);
+  resetPasswordInput.addEventListener('input', checkResetReady);
 
   resetConfirmBtn.addEventListener('click', function () {
     if (resetInput.value.trim() !== 'RESET') return;
     resetConfirmBtn.disabled = true;
     resetConfirmBtn.textContent = 'Reseteando...';
 
-    fetch('/api/reset-server', { method: 'POST' })
-      .then(function (res) { return res.json(); })
+    fetch('/api/reset-server', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: resetPasswordInput.value })
+    })
+      .then(function (res) {
+        if (!res.ok) return res.json().then(function (d) { throw new Error(d.message || 'Error'); });
+        return res.json();
+      })
       .then(function () {
         localStorage.removeItem(GUIDE_KEY);
         localStorage.removeItem('guideProgressMigrated_v2');
         window.location.href = '/setup';
       })
-      .catch(function () {
-        resetConfirmBtn.textContent = 'Error - Reintentar';
+      .catch(function (err) {
+        resetConfirmBtn.textContent = err.message || 'Error - Reintentar';
         resetConfirmBtn.disabled = false;
       });
   });
