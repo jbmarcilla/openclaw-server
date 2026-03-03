@@ -355,10 +355,66 @@
   autoDetectSteps();
   fetchServerInfo();
 
+  // --- Account Dropdown ---
+  var accountBtn = document.getElementById('accountBtn');
+  var accountMenu = document.getElementById('accountMenu');
+
+  accountBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    accountMenu.classList.toggle('open');
+  });
+
+  document.addEventListener('click', function () {
+    accountMenu.classList.remove('open');
+  });
+
   // --- Logout ---
   document.getElementById('logoutBtn').addEventListener('click', function () {
     fetch('/api/logout', { method: 'POST' }).then(function () {
       window.location.href = '/login';
     });
+  });
+
+  // --- Reset Server Modal ---
+  var resetModal = document.getElementById('resetModal');
+  var resetInput = document.getElementById('resetConfirmInput');
+  var resetConfirmBtn = document.getElementById('resetConfirmBtn');
+
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    accountMenu.classList.remove('open');
+    resetModal.style.display = 'flex';
+    resetInput.value = '';
+    resetConfirmBtn.disabled = true;
+    setTimeout(function () { resetInput.focus(); }, 100);
+  });
+
+  document.getElementById('resetCancelBtn').addEventListener('click', function () {
+    resetModal.style.display = 'none';
+  });
+
+  resetModal.addEventListener('click', function (e) {
+    if (e.target === resetModal) resetModal.style.display = 'none';
+  });
+
+  resetInput.addEventListener('input', function () {
+    resetConfirmBtn.disabled = resetInput.value.trim() !== 'RESET';
+  });
+
+  resetConfirmBtn.addEventListener('click', function () {
+    if (resetInput.value.trim() !== 'RESET') return;
+    resetConfirmBtn.disabled = true;
+    resetConfirmBtn.textContent = 'Reseteando...';
+
+    fetch('/api/reset-server', { method: 'POST' })
+      .then(function (res) { return res.json(); })
+      .then(function () {
+        localStorage.removeItem(GUIDE_KEY);
+        localStorage.removeItem('guideProgressMigrated_v2');
+        window.location.href = '/setup';
+      })
+      .catch(function () {
+        resetConfirmBtn.textContent = 'Error - Reintentar';
+        resetConfirmBtn.disabled = false;
+      });
   });
 })();

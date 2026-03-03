@@ -20,9 +20,37 @@
     <div class="topbar-right">
       <span id="status-indicator" class="status-dot offline"></span>
       <span id="status-text">Verificando...</span>
-      <button id="logoutBtn" class="btn-logout">Salir</button>
+      <div class="account-dropdown">
+        <button id="accountBtn" class="btn-logout">Mi Cuenta &#9662;</button>
+        <div id="accountMenu" class="dropdown-menu">
+          <button id="logoutBtn" class="dropdown-item">Salir</button>
+          <button id="resetBtn" class="dropdown-item dropdown-item-danger">Resetear Servidor</button>
+        </div>
+      </div>
     </div>
   </nav>
+
+  <!-- Reset confirmation modal -->
+  <div id="resetModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <div class="modal-icon">&#9888;</div>
+      <h2>Resetear Servidor</h2>
+      <p>Esta accion eliminara:</p>
+      <ul class="modal-list">
+        <li>Tu cuenta de administrador</li>
+        <li>Configuracion de OpenClaw</li>
+        <li>Progreso de la guia</li>
+        <li>Sesiones activas</li>
+      </ul>
+      <p class="modal-warning">El servidor volvera al estado inicial (wizard de setup).</p>
+      <label class="modal-label" for="resetConfirmInput">Escribe <strong>RESET</strong> para confirmar:</label>
+      <input id="resetConfirmInput" class="modal-input" type="text" autocomplete="off" placeholder="RESET">
+      <div class="modal-actions">
+        <button id="resetCancelBtn" class="btn-modal btn-modal-cancel">Cancelar</button>
+        <button id="resetConfirmBtn" class="btn-modal btn-modal-danger" disabled>Resetear Todo</button>
+      </div>
+    </div>
+  </div>
 
   <main class="content">
     <div id="tab-terminal" class="tab-content active">

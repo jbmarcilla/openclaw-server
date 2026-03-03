@@ -6,7 +6,7 @@ const pty = require('node-pty');
 const bcrypt = require('bcryptjs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
-const { loadConfig, saveConfig, isSetupDone } = require('./config');
+const { loadConfig, saveConfig, isSetupDone, CONFIG_DIR, CONFIG_FILE } = require('./config');
 
 let config = loadConfig();
 const app = express();
@@ -117,6 +117,45 @@ app.post('/api/login', (req, res) => {
 app.post('/api/logout', requireAuth, (req, res) => {
   req.session.destroy();
   res.json({ success: true });
+});
+
+// Reset server to initial state
+app.post('/api/reset-server', requireAuth, (req, res) => {
+  const fs = require('fs');
+  const { execSync } = require('child_process');
+  const errors = [];
+
+  // 1. Try to uninstall OpenClaw gateway
+  try {
+    execSync('openclaw gateway uninstall 2>&1', { encoding: 'utf8', timeout: 10000 });
+  } catch (e) { /* gateway may not be installed */ }
+
+  // 2. Remove OpenClaw config directory (~/.openclaw)
+  const openclawDir = path.join(process.env.HOME || '/home/ubuntu', '.openclaw');
+  try {
+    if (fs.existsSync(openclawDir)) {
+      fs.rmSync(openclawDir, { recursive: true, force: true });
+    }
+  } catch (e) {
+    errors.push('No se pudo eliminar ~/.openclaw: ' + e.message);
+  }
+
+  // 3. Remove admin config file (~/.openclaw-admin/config.json)
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      fs.unlinkSync(CONFIG_FILE);
+    }
+  } catch (e) {
+    errors.push('No se pudo eliminar config: ' + e.message);
+  }
+
+  // 4. Reload config in memory (now credentials are gone, isSetupDone() returns false)
+  config = loadConfig();
+
+  // 5. Destroy current session
+  req.session.destroy(() => {
+    res.json({ success: true, errors });
+  });
 });
 
 app.get('/', requireAuth, (req, res) => {
